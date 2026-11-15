@@ -1,5 +1,6 @@
 """Builds notebooks/01_human_agent_coordination.ipynb."""
 import nbformat as nbf
+from style import STYLE_CELL
 
 nb = nbf.v4.new_notebook()
 md = nbf.v4.new_markdown_cell
@@ -33,6 +34,24 @@ cells.append(md("""## 1. Context: the operation behind this notebook
 
 The methodology is **spec-driven**: the written spec is the source of truth; the cycle is *Draft → Building → Testing → Done → Approved → Live*. Rule 1 is enforced by three locks: the rule written at the top of every agent's instructions, agents that hold no production key, and an approval button only the owner can press.
 """))
+
+cells.append(code(STYLE_CELL))
+
+cells.append(code('''# Infographic: the cycle every change follows in my operation
+fig, ax = plt.subplots(figsize=(12, 4.2)); ax.set_xlim(0, 12); ax.set_ylim(0, 4.2); ax.axis("off")
+steps = [("Owner writes\\nthe spec", PALETTE["navy"]), ("Agent builds\\nin sandbox", PALETTE["teal"]),
+         ("Specifier tests\\n(evidence)", PALETTE["sky"]), ("Coordinator\\nreviews", PALETTE["gold"]),
+         ("Owner approves\\n→ production", PALETTE["coral"])]
+for i, (t, c) in enumerate(steps):
+    box(ax, (0.2 + i * 2.4, 2.2), 1.9, 1.1, t, c, fontsize=10.5)
+    if i < len(steps) - 1:
+        arrow(ax, (2.1 + i * 2.4, 2.75), (2.6 + i * 2.4, 2.75))
+box(ax, (3.0, 0.3), 6.0, 0.9, "Outcome logged → agent track record (trust)", PALETTE["grey"], fontsize=10.5)
+arrow(ax, (10.75, 2.2), (9.0, 0.75)); arrow(ax, (3.0, 0.75), (1.15, 2.2))
+ax.text(6.0, 3.75, "Rule 1: nothing reaches production without the owner's explicit approval",
+        ha="center", fontsize=10.5, color=PALETTE["navy"], style="italic")
+ax.set_title("Human–agent coordination cycle (as practised today)", pad=4)
+plt.show()'''))
 
 cells.append(md("""## 2. Literature review
 
@@ -70,7 +89,7 @@ cells.append(md("""## 3. Mapping the methodology to the literature
 **What is missing** is the last idea of [6]: approvals are static. Every action type needs approval forever, regardless of how reliable an agent has proven to be. The simulation below quantifies what that costs and what earned autonomy could change.
 """))
 
-cells.append(md("""## 4. Experiment: three oversight policies
+cells.append(md("""## 4. Experiment: four oversight policies
 
 **Setup (all parameters are stated assumptions, not measurements; they are calibrated to the scale of my operation and can be changed below).**
 
@@ -90,7 +109,6 @@ cells.append(md("""## 4. Experiment: three oversight policies
 
 cells.append(code("""import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from scipy.stats import beta
 
 SEED = 7
@@ -118,6 +136,7 @@ def reviewer_catch_prob(load):
 ACTIONS"""))
 
 cells.append(code("""POLICIES = ["approve_all", "risk_tiered", "earned_autonomy", "earned_priority"]
+POLICY_COLOR = dict(zip(POLICIES, [PALETTE["grey"], PALETTE["sky"], PALETTE["gold"], PALETTE["teal"]]))
 
 def simulate(policy, seed=SEED, days=DAYS, threshold=0.97):
     rng = np.random.default_rng(seed)
@@ -172,18 +191,20 @@ summary = results.groupby("policy").agg(reviews_per_day=("reviews", "mean"),
                                         escaped_high_risk=("escaped_high", "sum")).round(1)
 summary"""))
 
-cells.append(code("""fig, ax = plt.subplots(figsize=(9, 4.5))
-for p, g in results.groupby("policy"):
-    ax.plot(g.day, g.reviews.rolling(7).mean(), label=p, linewidth=2)
+cells.append(code("""fig, ax = plt.subplots(figsize=(10, 4.6))
+for p in POLICIES:
+    g = results[results.policy == p]
+    ax.plot(g.day, g.reviews.rolling(7).mean(), label=p.replace("_", " "), lw=2.4, color=POLICY_COLOR[p])
 ax.set_title("Human reviews per day (7-day average)")
-ax.set_xlabel("Day"); ax.set_ylabel("Reviews per day"); ax.legend(); ax.grid(alpha=.3)
+ax.set_xlabel("Day"); ax.set_ylabel("Reviews per day"); ax.legend()
 plt.tight_layout(); plt.show()"""))
 
-cells.append(code("""fig, ax = plt.subplots(figsize=(9, 4.5))
-for p, g in results.groupby("policy"):
-    ax.plot(g.day, g.escaped.cumsum(), label=p, linewidth=2)
+cells.append(code("""fig, ax = plt.subplots(figsize=(10, 4.6))
+for p in POLICIES:
+    g = results[results.policy == p]
+    ax.plot(g.day, g.escaped.cumsum(), label=p.replace("_", " "), lw=2.4, color=POLICY_COLOR[p])
 ax.set_title("Cumulative failures that escaped review")
-ax.set_xlabel("Day"); ax.set_ylabel("Escaped failures"); ax.legend(); ax.grid(alpha=.3)
+ax.set_xlabel("Day"); ax.set_ylabel("Escaped failures"); ax.legend()
 plt.tight_layout(); plt.show()"""))
 
 cells.append(code("""# Robustness: repeat with 20 seeds
@@ -195,6 +216,17 @@ for s in range(20):
                          escaped=d.escaped.sum(), escaped_high=d.escaped_high.sum()))
 robust = pd.DataFrame(runs).groupby("policy").agg(["mean", "std"]).drop(columns="seed").round(1)
 robust"""))
+
+cells.append(code("""m = pd.DataFrame(runs).groupby("policy").escaped_high.agg(["mean", "std"]).loc[POLICIES]
+fig, ax = plt.subplots(figsize=(10, 4.6))
+bars = ax.bar([p.replace("_", "\\n") for p in POLICIES], m["mean"], yerr=m["std"], capsize=6,
+              color=[POLICY_COLOR[p] for p in POLICIES])
+ax.set_axisbelow(True)
+for b, v, sd in zip(bars, m["mean"], m["std"]):
+    ax.text(b.get_x() + b.get_width() / 2, v + sd + 0.4, f"{v:.1f}", ha="center", fontsize=11, fontweight="bold")
+ax.set_title("High-risk failures that escaped review (120 days, mean ± sd over 20 seeds)")
+ax.set_ylabel("Escaped high-risk failures"); ax.grid(axis="x", visible=False)
+plt.tight_layout(); plt.show()"""))
 
 cells.append(md("""## 5. Discussion
 

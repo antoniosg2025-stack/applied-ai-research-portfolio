@@ -11,7 +11,7 @@ Each notebook connects one real project to current academic research, runs a rep
 | # | Notebook | Research area | Colab |
 |---|---|---|---|
 | 01 | [Earned autonomy for LLM agents in a real multi-business operation](notebooks/01_human_agent_coordination.ipynb) | Multi-agent LLM systems, human-in-the-loop oversight, graduated autonomy | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/antoniosg2025-stack/applied-ai-research-portfolio/blob/main/notebooks/01_human_agent_coordination.ipynb) |
-| 02 | Computer vision for phone self-checkout (in progress) | Retail product recognition, learning from user corrections | — |
+| 02 | [Phone self-checkout with computer vision: how many humans does an "automatic" store need?](notebooks/02_vision_self_checkout.ipynb) | Retail product recognition, vision-language embeddings, active learning with noisy corrections | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/antoniosg2025-stack/applied-ai-research-portfolio/blob/main/notebooks/02_vision_self_checkout.ipynb) |
 | 03 | Vending fleet demand forecasting and replenishment (in progress) | Demand forecasting, inventory replenishment | — |
 | 04 | Market balances: correlation structure for portfolio analysis (in progress) | PCA, correlation regimes, LLM agents in finance | — |
 | 05 | AI in a China–Canada–Mexico equipment supply chain (in progress) | Supplier selection, visual quality inspection | — |
