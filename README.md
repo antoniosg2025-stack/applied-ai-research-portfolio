@@ -1,8 +1,8 @@
 # Applied AI Research Portfolio
 
-**Juan Antonio Sainz Gálvez** · Computer Systems Engineer (Tecnológico de Monterrey) · Applied AI & Machine Learning, Conestoga College
+**Juan Antonio Sainz Gálvez** · B.Eng. Computer Engineering (Tecnológico de Monterrey) · Applied AI & Machine Learning, Conestoga College
 
-I build and operate small businesses in Canada and Mexico — vending machines, a phone self-checkout retail system, a portfolio-analysis AI connector and content channels — that are run day to day by a team of LLM agents and human specifiers. Before that, I spent 13 years in enterprise data migration (SAP) and founded an LED lighting distributor with offices in Hong Kong and Shenzhen.
+I build and operate small businesses in Canada and Mexico — vending machines, a phone self-checkout retail system, a portfolio-analysis AI connector and content channels — that are run day to day by a team of LLM agents and human specifiers. Before that, I worked five years in enterprise data migration (SAP) and then founded and ran for eight years an LED lighting distributor that grew to about 200 employees, with offices across Mexico and quality-inspection offices in Hong Kong and Shenzhen.
 
 **Research interest:** trustworthy AI agents for physical businesses (retail, vending and supply chain) that learn from real outcomes and know when to ask a human.
 
@@ -14,7 +14,17 @@ Each notebook connects one real project to current academic research, runs a rep
 | 02 | [Phone self-checkout with computer vision: how many humans does an "automatic" store need?](notebooks/02_vision_self_checkout.ipynb) | Retail product recognition, vision-language embeddings, active learning with noisy corrections | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/antoniosg2025-stack/applied-ai-research-portfolio/blob/main/notebooks/02_vision_self_checkout.ipynb) |
 | 03 | [When should the truck go? Forecasting and replenishment for a small vending fleet with censored demand](notebooks/03_vending_fleet_forecasting.ipynb) | Intermittent and censored demand, global gradient boosting, inventory routing | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/antoniosg2025-stack/applied-ai-research-portfolio/blob/main/notebooks/03_vending_fleet_forecasting.ipynb) |
 | 04 | [Market balances: finding co-moving groups and counterweights, and how much history they need](notebooks/04_market_balances.ipynb) | Random matrix theory, hierarchical clustering, covariance shrinkage, crisis correlations | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/antoniosg2025-stack/applied-ai-research-portfolio/blob/main/notebooks/04_market_balances.ipynb) |
-| 05 | AI in a China–Canada–Mexico equipment supply chain (in progress) | Supplier selection, visual quality inspection | — |
+| 05 | [Earned trust for overseas suppliers: Bayesian skip-lot inspection and AI visual inspection](notebooks/05_supply_chain_inspection.ipynb) | Acceptance sampling (ISO 2859-1), quality fade, industrial anomaly detection | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/antoniosg2025-stack/applied-ai-research-portfolio/blob/main/notebooks/05_supply_chain_inspection.ipynb) |
+
+## Key findings
+
+| Notebook | Main result (from the notebook's own experiment) |
+|---|---|
+| 01 · Earned autonomy | Earning autonomy per agent and action cuts human reviews by about a third versus approving everything, and a separate queue for high-risk actions keeps their escaped failures near zero. |
+| 02 · Vision self-checkout | Asking the shopper only when the model is unsure nearly matches confirming every cart while asking about 4 times in 10; look-alike products keep that rate far above the industry target of 50 per 1,000, which motivates multi-sensor verification. |
+| 03 · Vending fleet | Recorded sales understate demand by about 30% when coils run empty; using stock-out timing removes most of that bias, and planning visit intervals from the corrected forecast raises weekly profit well above a fixed weekly route. |
+| 04 · Market balances | After removing the market mode, clustering recovers sectors and investment styles without labels; a five-day correlation is mostly noise as a forecast and should be read as a deviation from the long-run balance. |
+| 05 · Supplier inspection | Skip-lot trust without continuous measurement is exploited by quality fade; cheap AI screening of every unit combined with a forgetting Bayesian trust model cuts escaped defects by about 85% versus ISO sampling. |
 
 ## Run locally
 
@@ -23,4 +33,4 @@ pip install -r requirements.txt
 jupyter notebook notebooks/
 ```
 
-Data used here is public or anonymized. No customer data, keys or private code from my companies is included.
+Each notebook is generated by a script in `tools/` (`build_nb1.py` … `build_nb5.py`) and executed end to end, so every figure can be reproduced. Data used here is public (skfolio datasets) or simulated and calibrated to my operations; no customer data, keys or private code from my companies is included.
