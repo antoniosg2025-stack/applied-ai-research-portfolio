@@ -1,6 +1,6 @@
 # Teaching AI Agents to Decide Like Their Owner
 
-<p align="center"><a href="https://research.antoniosainz.com"><img alt="View the interactive portfolio" src="https://img.shields.io/badge/View%20the%20interactive%20portfolio-research.antoniosainz.com-0F7C80?style=for-the-badge"></a></p>
+<p align="center"><a href="https://research.antonio-sainz.com"><img alt="View the interactive portfolio" src="https://img.shields.io/badge/View%20the%20interactive%20portfolio-research.antonio--sainz.com-0F7C80?style=for-the-badge"></a></p>
 
 
 ### Personalized decision-making and deferral for LLM agents, studied in seven real businesses
