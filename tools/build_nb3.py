@@ -1,6 +1,6 @@
 """Builds notebooks/03_press_corrections_vs_approvals.ipynb."""
 import nbformat as nbf
-from style import STYLE_CELL, header, REPO
+from style import STYLE_CELL, header
 
 FNAME = "03_press_corrections_vs_approvals.ipynb"
 md, code = nbf.v4.new_markdown_cell, nbf.v4.new_code_cell
@@ -28,11 +28,91 @@ Two sources, both from the Press agent's own records (Zernio analytics and the w
 cells.append(code(f'''import numpy as np
 import pandas as pd
 
+import io
+DATA = {{
+    "press_posts_metrics.csv": """published,platform,brand,topic,language,views,likes,comments,shares,saves,follows,duration_s
+2026-10-16,tiktok,analyst_channel,finance,en,29704,418,36,108,259,117,101.867
+2026-10-19,facebook,analyst_channel,finance,en,26205,150,2,13,0,141,
+2026-10-19,instagram,analyst_channel,finance,en,9596,53,2,43,60,0,45.0
+2026-10-19,tiktok,analyst_channel,finance,en,2450,41,4,5,6,15,42.822
+2026-10-30,instagram,analyst_channel,finance,en,1346,18,0,2,5,0,73.0
+2026-11-10,youtube,tepeyac,religious,es,1280,107,6,0,0,0,34.0
+2026-11-10,youtube,tepeyac,religious,es,1262,139,23,0,0,0,23.0
+2026-11-15,youtube,tepeyac,religious,es,1077,119,3,0,0,0,24.0
+2026-11-14,youtube,tepeyac,religious,es,1071,140,4,0,0,0,19.0
+2026-11-08,youtube,tepeyac,religious,es,1048,33,0,0,0,0,13.0
+2026-11-13,youtube,tepeyac,religious,es,1004,180,2,0,0,0,20.0
+2026-10-18,tiktok,analyst_channel,finance,en,855,24,6,1,5,2,51.5
+2026-11-14,youtube,tepeyac,religious,es,800,80,3,0,0,0,54.0
+2026-11-12,youtube,tepeyac,religious,es,756,46,0,0,0,0,31.0
+2026-10-18,tiktok,analyst_channel,finance,en,612,11,2,2,1,3,26.903
+2026-11-08,facebook,tepeyac,religious,es,578,14,0,1,0,1,
+2026-11-11,youtube,tepeyac,religious,es,521,31,0,0,0,0,20.0
+2026-11-08,facebook,tepeyac,religious,es,475,5,0,0,0,0,
+2026-10-20,tiktok,analyst_channel,finance,en,462,8,0,2,2,0,25.917
+2026-11-08,youtube,tepeyac,religious,es,415,24,12,0,0,0,55.0
+2026-10-18,instagram,analyst_channel,finance,en,400,2,0,1,1,0,51.0
+2026-10-30,tiktok,analyst_channel,finance,en,321,10,0,0,3,3,73.886
+2026-11-10,facebook,tepeyac,religious,es,319,7,0,0,0,0,
+2026-10-16,tiktok,analyst_channel,finance,en,312,3,3,2,3,2,57.586
+2026-11-10,youtube,tepeyac,religious,es,296,33,4,0,0,0,17.0
+2026-10-18,facebook,analyst_channel,finance,en,296,1,0,0,0,1,
+2026-10-16,tiktok,analyst_channel,finance,en,287,6,1,0,0,3,29.376
+2026-11-10,facebook,tepeyac,religious,es,284,5,0,0,0,0,
+2026-11-12,facebook,tepeyac,religious,es,272,2,0,0,0,0,
+2026-10-30,tiktok,analyst_channel,finance,es,265,7,0,0,0,1,88.445
+2026-11-13,facebook,tepeyac,religious,es,262,0,0,0,0,0,
+2026-11-14,instagram,tepeyac,religious,es,260,19,5,3,2,0,18.0
+2026-10-22,facebook,analyst_channel,finance,en,260,0,0,0,0,0,
+2026-10-30,tiktok,analyst_channel,finance,en,257,5,0,1,2,1,28.067
+2026-10-24,facebook,analyst_channel,finance,en,252,0,0,0,0,0,
+2026-11-10,facebook,tepeyac,religious,es,247,5,0,0,0,1,
+2026-10-22,tiktok,analyst_channel,finance,en,247,6,1,0,0,2,15.005
+2026-11-08,tiktok,grabgo,grabgo,es,246,12,0,1,0,0,30.14
+2026-10-18,instagram,analyst_channel,finance,en,245,3,0,0,0,0,28.0
+2026-11-12,facebook,tepeyac,religious,es,241,1,0,0,0,0,
+2026-11-10,instagram,tepeyac,religious,es,15,0,0,0,1,0,33.0
+2026-11-14,instagram,tepeyac,religious,es,14,1,0,0,0,0,174.0
+2026-11-11,facebook,grabgo,grabgo,en,14,0,0,0,0,0,
+2026-11-11,instagram,tepeyac,religious,es,14,0,2,0,0,0,19.0
+2026-10-30,youtube,analyst_channel,finance,en,14,0,1,0,0,0,160.0
+2026-11-15,facebook,grabgo,grabgo,en,13,1,0,0,0,0,
+2026-11-11,youtube,tepeyac,religious,es,12,0,0,0,0,0,86.0
+2026-11-14,facebook,grabgo,grabgo,en,8,0,0,0,0,0,
+2026-11-12,instagram,tepeyac,religious,es,8,0,0,0,0,0,78.0
+2026-11-13,instagram,tepeyac,religious,es,6,0,0,0,0,0,76.0
+2026-11-11,instagram,tepeyac,religious,es,6,0,0,0,0,0,85.0
+2026-11-08,instagram,tepeyac,religious,es,6,0,0,0,0,0,
+2026-11-04,youtube,grabgo,grabgo,es,6,0,0,0,0,0,215.0
+2026-11-11,instagram,tepeyac,religious,es,3,0,0,0,0,0,97.0
+2026-11-14,facebook,tepeyac,religious,es,2,0,0,0,0,0,
+2026-11-13,facebook,grabgo,grabgo,en,2,0,0,0,0,0,
+2026-11-04,youtube,grabgo,grabgo,en,2,0,0,0,0,0,183.0
+2026-10-16,linkedin,analyst_channel,finance,en,2,1,0,0,0,0,
+2026-11-10,facebook,tepeyac,finance,en,0,0,0,0,0,0,
+2026-11-08,facebook,tepeyac,religious,es,0,0,0,0,0,0,
+2026-11-08,facebook,tepeyac,finance,en,0,0,0,0,0,0,
+2026-10-23,linkedin,analyst_channel,finance,en,0,0,0,0,0,0,
+2026-10-21,linkedin,analyst_channel,finance,en,0,0,0,0,0,0,
+2026-10-17,facebook,analyst_channel,finance,en,0,0,0,0,0,0,
+2026-10-17,facebook,analyst_channel,finance,en,0,1,0,0,0,0,
+2026-10-16,linkedin,analyst_channel,finance,en,0,1,0,0,0,0,
+""",
+    "grabgo_en_vs_es_tiktok.csv": """piece,persona,en_views,en_hold_2s_pct,en_hold_10s_pct,es_views,es_hold_2s_pct,es_hold_10s_pct,age_days
+Next location,operator,197,23,4,,,,8.9
+Airbnb little store,airbnb host,94,23,5,190,43,7,8.0
+Operators new route,operator,93,22,6,206,51,14,7.0
+Airbnb amenity ideas,airbnb host,91,25,8,246,52,25,6.0
+Office you said no,operator,101,19,2,196,56,13,4.3
+No app no cashier,shopper,45,13,0,145,40,7,4.0
+Bot speaks your language,shopper,47,22,4,40,39,5,3.0
+Machines never paid,operator,84,19,1,187,53,11,2.0
+Stop turning down,operator,94,14,0,207,51,14,1.0
+""",
+}}
 def load(name):
-    try:
-        return pd.read_csv(f"../data/{{name}}")
-    except FileNotFoundError:   # in Colab
-        return pd.read_csv(f"https://raw.githubusercontent.com/{REPO}/main/data/{{name}}")
+    """The data travels inside the notebook, so it runs anywhere (Colab, Drive, GitHub)."""
+    return pd.read_csv(io.StringIO(DATA[name]))
 
 posts = load("press_posts_metrics.csv")            # the 40 most-viewed and 26 least-viewed of 186 posts
 pairs = load("grabgo_en_vs_es_tiktok.csv")          # the same GrabGo piece in English and in Spanish

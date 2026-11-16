@@ -1,6 +1,6 @@
 """Builds notebooks/04_seo_reversibility_rule_transfer.ipynb."""
 import nbformat as nbf
-from style import STYLE_CELL, header, REPO
+from style import STYLE_CELL, header
 
 FNAME = "04_seo_reversibility_rule_transfer.ipynb"
 md, code = nbf.v4.new_markdown_cell, nbf.v4.new_code_cell
@@ -28,11 +28,38 @@ Every line of the agent's log was classified by the kind of change and what happ
 cells.append(code(f'''import numpy as np
 import pandas as pd
 
+import io
+DATA = {{
+    "seo_agent_decision_log.csv": """date,project,kind,status,owner_correction
+2026-11-10,grabgo,internal document or audit,done by agent,0
+2026-11-09,tepeyac,production site change,approved by owner,0
+2026-11-09,tepeyac,staging change,waiting for owner,1
+2026-11-09,tepeyac,production site change,waiting for owner,0
+2026-11-09,tepeyac,staging change,done by agent,1
+2026-11-09,tepeyac,production site change,waiting for owner,0
+2026-11-09,tepeyac,internal document or audit,approved by owner,0
+2026-11-08,tepeyac,internal document or audit,waiting for owner,0
+2026-11-08,tepeyac,internal document or audit,done by agent,0
+2026-11-05,all,staging change,waiting for owner,0
+2026-11-05,all,site code or config,done by agent,0
+2026-11-05,all,site code or config,done by agent,1
+2026-11-05,home + grabgo,staging change,waiting for owner,0
+2026-11-05,all,internal document or audit,done by agent,1
+2026-11-05,all,staging change,done by agent,0
+2026-11-04,grabgo,internal document or audit,waiting for owner,0
+2026-11-04,grabgo,site code or config,waiting for owner,0
+2026-11-04,home + grabgo,site code or config,done by agent,0
+2026-11-04,all,site code or config,waiting for owner,0
+2026-11-04,all,site code or config,approved by owner,0
+2026-11-04,all,internal document or audit,done by agent,0
+2026-11-04,all,internal document or audit,done by agent,0
+2026-11-04,all,internal document or audit,done by agent,0
+2026-11-04,all,internal document or audit,done by agent,0
+""",
+}}
 def load(name):
-    try:
-        return pd.read_csv(f"../data/{{name}}")
-    except FileNotFoundError:
-        return pd.read_csv(f"https://raw.githubusercontent.com/{REPO}/main/data/{{name}}")
+    """The data travels inside the notebook, so it runs anywhere (Colab, Drive, GitHub)."""
+    return pd.read_csv(io.StringIO(DATA[name]))
 
 log = load("seo_agent_decision_log.csv")
 pd.crosstab(log.kind, log.status, margins=True, margins_name="total")'''))
