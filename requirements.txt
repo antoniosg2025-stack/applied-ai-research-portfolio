@@ -3,4 +3,4 @@ pandas
 matplotlib
 scipy
 scikit-learn
-skfolio
+nbformat
