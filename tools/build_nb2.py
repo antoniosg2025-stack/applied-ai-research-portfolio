@@ -1,216 +1,210 @@
-"""Builds notebooks/02_vision_self_checkout.ipynb."""
+"""Builds notebooks/02_equilibra_situation_rules.ipynb."""
 import nbformat as nbf
-from style import STYLE_CELL
+from style import STYLE_CELL, header
 
+FNAME = "02_equilibra_situation_rules.ipynb"
 md, code = nbf.v4.new_markdown_cell, nbf.v4.new_code_cell
 cells = []
 
-cells.append(md("""# 02 · Phone Self-Checkout with Computer Vision: How Many Humans Does an "Automatic" Store Need?
+cells.append(md(header("02", "Equilibra: Copying the Owner's Moves or Learning the Owner's Rule? Money Decisions Across Different Situations", FNAME,
+    "*Equilibra* is my AI connector for studying portfolios as balances. After months of grading my own investment theses with it, "
+    "I arrived at a personal rule: first pay every credit card (a guaranteed ~20% a year), then put the rest in a fixed-term deposit, "
+    "and risk in stocks **only what that deposit pays in interest**, so that if the stocks went to zero I would lose only the interest, "
+    "never the principal. The question for the thesis: when another user with a different situation asks the agent, "
+    "does the agent decide as I would decide **in that user's situation**?")))
 
-**Author:** Juan Antonio Sainz Gálvez · Applied AI & ML, Conestoga College
-
-<a href="https://colab.research.google.com/github/antoniosg2025-stack/applied-ai-research-portfolio/blob/main/notebooks/02_vision_self_checkout.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
-
----
-
-## Abstract
-
-*GrabGo* is a self-checkout system I am deploying in small closed spaces (offices, warehouses and short-term rental homes). There is no special hardware: the owner's existing camera watches the shelf, the shopper photographs what they took with their own phone, an AI model builds the cart, and the shopper can correct it before paying. Every correction becomes training data.
-
-Industry experience shows the hard part is not recognition accuracy on a benchmark but **how much human review the system needs in practice**. This notebook reviews research on automatic checkout, retail product recognition, vision-language models and active learning, and runs a reproducible experiment on an embedding-based recognizer that learns from shopper corrections. The question: **how should a store decide when to ask the shopper to confirm, so that wrong charges stay low without asking on every purchase?**
-"""))
+cells.append(md("> This notebook studies how an agent imitates a decision rule. It is not financial advice, and Equilibra never recommends buying or selling; it measures."))
 
 cells.append(code(STYLE_CELL))
+cells.append(code('''thesis_card("Equilibra, money at risk",
+            ["Card debt costs ~20% a year", "Fixed-term deposit pays a safe rate",
+             "Rule: never risk the principal", "Risk only the interest earned",
+             "Situation changes: debt reaches zero"],
+            "pay cards, deposit,\\nor risk in stocks",
+            "my monthly decisions\\nand thesis grades")'''))
 
-cells.append(code('''# Infographic: the GrabGo loop
-fig, ax = plt.subplots(figsize=(12, 3.6)); ax.set_xlim(0, 12); ax.set_ylim(0, 3.6); ax.axis("off")
-steps = [("Shopper takes\\nproducts", PALETTE["navy"]), ("Phone photo +\\nshelf camera", PALETTE["sky"]),
-         ("AI builds\\nthe cart", PALETTE["teal"]), ("Confident?", PALETTE["gold"]),
-         ("Charge via\\nStripe", PALETTE["navy"])]
-for i, (t, c) in enumerate(steps):
-    box(ax, (0.2 + i * 2.4, 1.6), 1.9, 1.1, t, c, fontsize=10.5)
-    if i < len(steps) - 1:
-        arrow(ax, (2.1 + i * 2.4, 2.15), (2.6 + i * 2.4, 2.15))
-box(ax, (7.4, 0.15), 3.0, 0.9, "Shopper confirms or corrects", PALETTE["coral"], fontsize=10)
-arrow(ax, (8.05, 1.6), (8.4, 1.05)); arrow(ax, (10.4, 0.6), (10.9, 1.6))
-ax.text(5.3, 0.55, "every correction → new reference image\\n→ the model improves for all stores",
-        ha="center", fontsize=10, color=PALETTE["navy"], style="italic")
-ax.set_title("GrabGo: recognition with a human only when the model is unsure", pad=6)
-plt.show()'''))
+cells.append(md("""## 1. Literature
 
-cells.append(md("""## 1. Literature review
+| Research line | Key result | What it gives this case |
+|---|---|---|
+| The credit card debt puzzle [1, 2] | Around 30% of US households carry high-interest card debt while holding low-yield liquid assets; Gross and Souleles found more than a third of borrowers keep over a month of income in liquid assets while revolving debt | Paying expensive debt first is a decision many people do *not* take; an agent cannot assume it, it must learn whether *this* person does |
+| Gambling with the house money [3] | After a gain, people take risks with the gain that they would not take with their own capital | My rule (risk only the interest) is a deliberate, formalized version of this effect: a personal decision style, not a market law |
+| Robo-advising [4] | A robo-adviser tailored to investors' holdings had *opposite* effects for investors who were diversified and those who were not | The same advice is right for one situation and wrong for another |
+| LLM agents as personalized financial advisers [5] | In a 64-person study, LLM advisers matched humans at eliciting preferences but struggled with conflicting needs; without accurate preference elicitation they could steer people to unsuitable assets, and users preferred extroverted advisers even when the advice was worse | Personalization must be measured against the person's own criterion, not user satisfaction |
+| Personalized alignment [6] | One model averaged over people is wrong for each individual | Copying "the owner's average move" is the same error |
 
-### 1.1 Automatic checkout as a research problem
-Wei et al. introduced the **RPC dataset** for automatic checkout [1]: 200 retail SKUs, 53,739 single-product exemplar images for training and 30,000 checkout images with up to 17 products each, in easy, medium and hard clutter levels. They frame the problem as large-scale, fine-grained, few-shot and cross-domain, because products change constantly and training images rarely look like real checkout scenes. Follow-up work on RPC raised checkout accuracy from 56.68% to 80.51% with data priming [2].
-
-The **AI City Challenge** has run an automated retail checkout track since 2022, where teams detect and count products moving through a checkout area in video, trained mostly on synthetic data [3]. Typical solutions combine a YOLO detector with a tracker [4] and add correction steps such as retrospective checking of earlier detections to fix flickering results [5]. A survey of deep learning for retail product recognition lists the recurring challenges: many fine-grained classes, few examples per class, constant catalog changes and domain shift [6].
-
-### 1.2 Vision-language models: recognizing new products without retraining
-Because catalogs change, recent work moves from closed-set classifiers to **embedding-based retrieval**. RetailKLIP fine-tunes a CLIP vision encoder with metric learning so that new products are classified by nearest-neighbour search without retraining [7]. Tur et al. benchmark zero-shot classification of fine-grained retail products with CLIP, BLIP and DINOv2 on the MIMEX dataset and propose visual prototypes built from a few samples [8]. A 2026 study evaluates 190 open-source vision-language models on grocery product retrieval and finds that standard benchmarks fail to capture fine-grained SKU discrimination [9].
-
-### 1.3 Humans in the loop: active learning and noisy corrections
-Active learning reduces labeling effort by sending only the most informative samples to humans. In retail, it has been evaluated to cut annotation work for product recognition, which must be repeated whenever products change [10]. Real human corrections are noisy: Schubert et al. study active learning for object detection with a **noisy oracle** and show that reviewing suspected label errors beats both random review and no review [11]. Beck et al. go beyond labeling, combining auto-labeling, human correction and cheaper human *verification* [12].
-
-### 1.4 The industry lesson
-The best-known checkout-free system shows why this matters. According to reports in 2024, about 700 of every 1,000 Just Walk Out transactions in 2022 needed human review, against an internal target of 50 per 1,000; Amazon disputed the figures and said the India-based team mainly helped train the model [13]. Whatever the exact number, **the human review rate per 1,000 purchases is the metric that decides whether an "automatic" store is viable**.
-
-**Gap.** Benchmarks report recognition accuracy on fixed datasets. Small stores need a policy that decides, purchase by purchase, when to ask the shopper, and that improves from the shopper's own corrections.
+**Gap.** These studies personalize *recommendations*. The thesis asks something narrower and harder: can the agent reproduce **one person's decision rule** in another person's situation, and know when it cannot?
 """))
 
-cells.append(md("""## 2. Experiment: confidence routing with learning from corrections
+cells.append(md("""## 2. The owner's rule, written as a function of the situation
 
-**Model.** Each product is a cluster in an embedding space (as a CLIP-style encoder would produce). The store owner uploads 5 catalog photos per product; the recognizer classifies a photo by cosine similarity to each product's prototype (the mean of its reference embeddings), as in [7, 8]. Some products come in **look-alike pairs** (same brand, different flavour), the fine-grained case that breaks recognizers [1, 9].
+For a situation *s* = (cash available, card debt, card interest rate, safe deposit rate):
 
-**Stream.** 60 days of purchases with 1–5 items each; on day 20 the owner adds 10 new products with only 3 photos each (catalog change).
+1. **Pay cards** = min(cash, card debt) when the card rate is above the safe rate.
+2. **Deposit** = what is left.
+3. **Risk budget in stocks** = deposit × safe rate (one year of interest).
 
-**Policies**
-1. **Static** — never asks, never learns.
-2. **Confirm every cart** — the shopper confirms every purchase; corrections are added to the reference set.
-3. **Confidence routing** — the shopper is asked only when the least-confident item's margin (top-1 minus top-2 similarity) is below a threshold τ; corrections are added.
-
-Shoppers correct a wrong item 90% of the time (a noisy oracle, as in [11]). **Metrics:** wrong charges per 1,000 carts and shopper confirmations per 1,000 carts.
+All amounts below are **illustrative**, not my real balances.
 """))
 
 cells.append(code('''import numpy as np
 import pandas as pd
+from sklearn.ensemble import GradientBoostingRegressor
 
-RNG_SEED = 11
-D, K_START, K_NEW, PAIRS = 64, 40, 10, 8
-NOISE = 0.32          # lighting, angle and occlusion variability of real photos
-LOOKALIKE = 0.50      # distance between look-alike products
+def owner_rule(cash, debt, card_rate, safe_rate):
+    pay = min(cash, debt) if card_rate > safe_rate else 0.0
+    deposit = cash - pay
+    return np.array([pay, deposit, deposit * safe_rate])   # (pay cards, deposit, risk budget for stocks)
 
-def make_catalog(rng):
-    means = rng.normal(size=(K_START + K_NEW, D))
-    for i in range(PAIRS):                       # look-alike pairs among the starting products
-        means[2 * i + 1] = means[2 * i] + LOOKALIKE * rng.normal(size=D)
-    return means / np.linalg.norm(means, axis=1, keepdims=True)
+# The owner's own history: 18 months, debt falling from $24,000 at 20%, $2,500 a month to allocate
+rows, debt = [], 24_000.0
+for month in range(18):
+    cash = 2_500.0 + (6_000.0 if month == 0 else 0.0)
+    pay, dep, risk = owner_rule(cash, debt, 0.20, 0.04)
+    rows.append(dict(month=month + 1, cash=cash, debt_before=debt, card_rate=0.20, safe_rate=0.04,
+                     pay_cards=pay, deposit=dep, risk_budget=risk))
+    debt -= pay
+history = pd.DataFrame(rows)
+history[["month", "debt_before", "pay_cards", "deposit", "risk_budget"]].round(0).head(12)'''))
 
-def photo(rng, means, k):
-    v = means[k] + NOISE * rng.normal(size=D) / np.sqrt(D) * 4
-    return v / np.linalg.norm(v)
-
-class Recognizer:
-    """Nearest-prototype recognizer over a growing reference set (prototype = mean of reference embeddings)."""
-    def __init__(self):
-        self.keys, self.sums, self.counts = [], [], []
-    def add(self, k, v):
-        if k not in self.keys:
-            self.keys.append(k); self.sums.append(np.zeros(D)); self.counts.append(0)
-        i = self.keys.index(k); self.sums[i] = self.sums[i] + v; self.counts[i] += 1
-    def predict(self, v):
-        protos = np.array(self.sums)
-        protos /= np.linalg.norm(protos, axis=1, keepdims=True)
-        s = protos @ v
-        top2 = np.argsort(s)[-2:]
-        return self.keys[top2[1]], s[top2[1]] - s[top2[0]]
-
-print("embedding dim:", D, "| products:", K_START, "+", K_NEW, "new on day 20 | look-alike pairs:", PAIRS)'''))
-
-cells.append(code('''def run(policy, tau=0.05, seed=RNG_SEED, days=60, carts_per_day=60, oracle=0.9):
-    rng = np.random.default_rng(seed)
-    means = make_catalog(rng)
-    rec = Recognizer()
-    for k in range(K_START):
-        for _ in range(5):
-            rec.add(k, photo(rng, means, k))
-    rows = []
-    for day in range(days):
-        if day == 20:
-            for k in range(K_START, K_START + K_NEW):
-                for _ in range(3):
-                    rec.add(k, photo(rng, means, k))
-        live = K_START + (K_NEW if day >= 20 else 0)
-        for _ in range(carts_per_day):
-            items = rng.integers(0, live, size=rng.integers(1, 6))
-            shots = [photo(rng, means, k) for k in items]
-            preds = [rec.predict(v) for v in shots]
-            min_margin = min(m for _, m in preds)
-            ask = policy == "confirm_every_cart" or (policy == "confidence_routing" and min_margin < tau)
-            wrong = [p != k for (p, _), k in zip(preds, items)]
-            if ask:
-                fixed = [w and rng.random() < oracle for w in wrong]
-                charged_wrong = any(w and not f for w, f in zip(wrong, fixed))
-                for v, (p, _), k, w, f in zip(shots, preds, items, wrong, fixed):
-                    rec.add(k if (not w or f) else p, v)   # unfixed errors pollute the reference set
-            else:
-                charged_wrong = any(wrong)
-            rows.append(dict(day=day, asked=ask, wrong_charge=charged_wrong, item_errors=sum(wrong)))
-    return pd.DataFrame(rows).assign(policy=policy)
-
-runs = pd.concat([run("static"), run("confirm_every_cart"), run("confidence_routing")])
-table = (runs.groupby("policy")
-             .agg(wrong_charges_per_1000=("wrong_charge", lambda s: 1000 * s.mean()),
-                  confirmations_per_1000=("asked", lambda s: 1000 * s.mean()))
-             .round(1).loc[["static", "confirm_every_cart", "confidence_routing"]])
-table'''))
-
-cells.append(code('''fig, ax = plt.subplots(figsize=(10, 4.6))
-for (p, g), c in zip(runs.groupby("policy", sort=False), POLICY_COLORS):
-    w = g.groupby("day").wrong_charge.mean().rolling(5, min_periods=1).mean() * 1000
-    ax.plot(w.index, w.values, lw=2.4, label=p.replace("_", " "))
-ax.axvline(20, color=PALETTE["grey"], ls="--", lw=1)
-ax.text(20.5, ax.get_ylim()[1] * 0.92, "10 new products added", color=PALETTE["grey"], fontsize=9)
-ax.set_title("Wrong charges per 1,000 carts (5-day average)")
-ax.set_xlabel("Day"); ax.set_ylabel("Wrong charges per 1,000 carts"); ax.legend(loc="upper right")
+cells.append(code('''fig, ax = plt.subplots(figsize=(10.5, 4.8))
+ax.bar(history.month, history.pay_cards, color=PALETTE["coral"], label="paid to cards")
+ax.bar(history.month, history.deposit, bottom=history.pay_cards, color=PALETTE["teal"], label="fixed-term deposit")
+ax2 = ax.twinx()
+ax2.plot(history.month, history.debt_before, color=PALETTE["navy"], lw=2.4, marker="o", label="card debt (right axis)")
+ax2.set_ylabel("Card debt ($)"); ax2.grid(False); ax2.spines["right"].set_visible(True)
+ax.set_xlabel("Month"); ax.set_ylabel("Money allocated that month ($)")
+ax.set_xticks(history.month); ax.set_ylim(0, 9500)
+ax.set_title("The owner's decisions change phase when the debt reaches zero")
+h1, l1 = ax.get_legend_handles_labels(); h2, l2 = ax2.get_legend_handles_labels()
+ax.legend(h1 + h2, l1 + l2, loc="upper center"); ax.grid(axis="x", visible=False)
 plt.tight_layout(); plt.show()'''))
 
-cells.append(md("""### Choosing the threshold
-The threshold τ is the business decision: higher τ asks shoppers more often and charges wrong less often. The frontier below shows every option, with the industry reference points of 50 and 700 human reviews per 1,000 purchases from [13].
+cells.append(md("""## 3. Experiment: 1,000 users in situations the owner never lived
+
+Each synthetic user has cash between \\$1,000 and \\$50,000, card debt between \\$0 and \\$40,000, a card rate between 0% (promotional) and 30%, and a safe rate between 2% and 6%. Four agents decide for them:
+
+1. **Copy the owner's last move**: allocate in the same proportions the owner used last month (by then he was debt-free).
+2. **Copy the owner's average move**: the average proportions over his 18 months.
+3. **Flexible model of the owner's decisions**: gradient boosting trained on the owner's 18 decisions (features: cash, debt, rates) to predict each amount.
+4. **The owner's rule, learned as a function of the situation**: the agent assumes the *form* of the rule (pay debt whose rate exceeds the safe rate by some margin *m*; risk *r* times the deposit's interest) and learns *r* and *m* from the owner. The owner's history fixes *r* = 1, but only shows him paying at 20% versus 4%, so *m* could be anything between 0 and 16 points. When a user's margin falls in that unknown range, the agent **asks the owner** and narrows the range with his answer.
+
+**Error, in money:** the dollars the agent places differently from where the owner would have placed them for that user, plus the principal put at risk beyond the owner's limit.
 """))
 
-cells.append(code('''taus = [0.0, 0.01, 0.02, 0.03, 0.05, 0.08, 0.12, 0.2]
-frontier = []
-for t in taus:
-    r = pd.concat([run("confidence_routing", tau=t, seed=s, days=40) for s in range(3)])
-    frontier.append(dict(tau=t, confirmations=1000 * r.asked.mean(), wrong=1000 * r.wrong_charge.mean()))
-frontier = pd.DataFrame(frontier)
+cells.append(code('''rng = np.random.default_rng(7)
+N = 1000
+users = pd.DataFrame(dict(cash=rng.uniform(1_000, 50_000, N), debt=rng.choice([0, 1], N, p=[0.3, 0.7]) * rng.uniform(0, 40_000, N),
+                          card_rate=np.where(rng.random(N) < 0.15, 0.0, rng.uniform(0.10, 0.30, N)), safe_rate=rng.uniform(0.02, 0.06, N)))
+target = np.vstack([owner_rule(*r) for r in users[["cash", "debt", "card_rate", "safe_rate"]].values])
 
-fig, ax = plt.subplots(figsize=(10, 5))
-ax.plot(frontier.confirmations, frontier.wrong, "-o", color=PALETTE["teal"], lw=2.4, ms=8)
-for _, r in frontier.iterrows():
-    ax.annotate(f"τ={r.tau:g}", (r.confirmations, r.wrong), textcoords="offset points", xytext=(6, 6), fontsize=9)
-for x, label in [(50, "industry target\\n50 / 1,000"), (700, "reported 2022\\n700 / 1,000")]:
-    ax.axvline(x, color=PALETTE["coral"], ls=":", lw=1.5)
-    ax.text(x + 8, ax.get_ylim()[1] * 0.85, label, color=PALETTE["coral"], fontsize=9)
-ax.set_title("Trade-off: shopper confirmations vs wrong charges")
-ax.set_xlabel("Shopper confirmations per 1,000 carts"); ax.set_ylabel("Wrong charges per 1,000 carts")
-plt.tight_layout(); plt.show()
-frontier.round({"tau": 3, "confirmations": 1, "wrong": 1})'''))
+last = history.iloc[-1]; last_frac = np.array([last.pay_cards, last.deposit, last.risk_budget]) / last.cash
+avg_frac = (history[["pay_cards", "deposit", "risk_budget"]].values / history[["cash"]].values).mean(0)
 
-cells.append(md("""## 3. Discussion
+X_hist = history[["cash", "debt_before", "card_rate", "safe_rate"]].values
+Y_hist = history[["pay_cards", "deposit", "risk_budget"]].values
+gbm = [GradientBoostingRegressor(n_estimators=200, max_depth=2, random_state=0).fit(X_hist, Y_hist[:, j]) for j in range(3)]
 
-- **Static recognition is not usable.** Without asking or learning, roughly one cart in four is charged wrong, almost all because of look-alike products. Benchmark accuracy on ordinary products (about 99% here) hides this.
-- **Confirming every cart** gives the fewest wrong charges (about 11 per 1,000) but asks on every purchase, which defeats the purpose of a fast checkout.
-- **Confidence routing** reaches almost the same wrong-charge rate (about 16 per 1,000 at τ = 0.05) while asking on only about 4 carts in 10. Wrong charges fall over the first weeks (about 32 per 1,000 in days 0–9, about 8–12 later) because the corrections it collects are exactly the hard cases.
-- **But the confirmation rate does not fall.** It stays near 400 per 1,000: look-alike products remain close in embedding space no matter how many reference photos are added, so their margin stays low. Better prototypes alone cannot reach the 50 per 1,000 target; the system needs **new information** (a second view, the shelf camera, the inventory count), which motivates thesis question 1.
-- **Noisy corrections matter.** When a shopper does not fix an error, the wrong label enters the reference set and can make later mistakes more likely, as studied in [11]. In a real deployment this argues for a second check before a correction is trusted.
+def agent_alloc(name, u):
+    if name == "copy last move": return last_frac * u.cash
+    if name == "copy average move": return avg_frac * u.cash
+    if name == "flexible model":
+        a = np.clip([m.predict([[u.cash, u.debt, u.card_rate, u.safe_rate]])[0] for m in gbm], 0, None)
+        a[:2] = a[:2] / max(a[:2].sum(), 1e-9) * u.cash              # keep the allocation within the user's cash
+        return a
+    return owner_rule(u.cash, u.debt, u.card_rate, u.safe_rate)
 
-**Limitations.** Embeddings here are simulated Gaussian clusters, not photos; real errors are correlated (lighting, a dirty lens, a product facing backwards). The next step is to replay real GrabGo photos and corrections through the same policies.
+AGENTS = ["copy last move", "copy average move", "flexible model", "owner's rule + ask when unsure"]
 
-## 4. Thesis questions
+# What the rule agent can learn from the owner's history
+dep = history[history.deposit > 0]
+r_hat = float((dep.risk_budget / (dep.deposit * dep.safe_rate)).mean())          # = 1: risk exactly one year of interest
+lo, hi = -1.0, float((history.card_rate - history.safe_rate).min())               # margin m is somewhere in (lo, hi]
+TRUE_MARGIN = 0.0                                                                   # the owner pays whenever card rate > safe rate
 
-1. **Multi-agent verification of a cart.** The phone photo, the shelf camera and the inventory count are three independent "witnesses". Can an agent that reconciles them decide when a human is needed better than a single confidence score?
-2. **Trusting shopper corrections.** How should a store weigh a correction by its source (shopper history, agreement with the camera) to avoid polluting the reference set?
-3. **Federated learning across stores.** Each store sees different products and lighting. Can stores share what they learn without sharing their customers' images?
+res, owner_questions = [], []
+for i, u in users.iterrows():
+    for name in AGENTS:
+        if name.startswith("owner's rule"):
+            gap = u.card_rate - u.safe_rate
+            if u.debt > 0 and lo < gap < hi:                       # the owner's history cannot tell: ask him
+                pays = gap > TRUE_MARGIN
+                if pays: hi = min(hi, gap)
+                else: lo = max(lo, gap)
+                owner_questions.append(i)
+                res.append(dict(agent=name, misplaced=0.0, over_risk=0.0, asked=1)); continue
+            pay = min(u.cash, u.debt) if (u.debt > 0 and gap >= hi) else 0.0
+            a = np.array([pay, u.cash - pay, (u.cash - pay) * u.safe_rate * r_hat])
+        else:
+            a = agent_alloc(name, u)
+        res.append(dict(agent=name, misplaced=np.abs(a[:2] - target[i, :2]).sum() / 2,
+                        over_risk=max(0.0, a[2] - target[i, 2]), asked=0))
+res = pd.DataFrame(res)
+print(f"Questions the rule agent asked the owner: {len(owner_questions)} (users #{owner_questions}) · learned margin range: ({lo:.3f}, {hi:.3f}]")
+table = res.groupby("agent").agg(median_money_placed_differently=("misplaced", "median"),
+                                 mean_money_placed_differently=("misplaced", "mean"),
+                                 mean_extra_principal_at_risk=("over_risk", "mean"),
+                                 questions_to_the_owner=("asked", "sum")).loc[AGENTS].round(0)
+table'''))
+
+cells.append(code('''fig, ax = plt.subplots(figsize=(10.5, 4.8))
+cols = [PALETTE["grey"], PALETTE["sky"], PALETTE["gold"], PALETTE["teal"]]
+bars = ax.bar([a.replace(" + ", "\\n+ ") for a in AGENTS], table.mean_money_placed_differently, color=cols)
+for b, v in zip(bars, table.mean_money_placed_differently):
+    ax.text(b.get_x() + b.get_width() / 2, v + 150, f"${v:,.0f}", ha="center", fontsize=12, fontweight="bold")
+ax.grid(axis="x", visible=False)
+ax.set_title("Money placed differently from where the owner would place it, per user")
+ax.set_ylabel("Average dollars per user")
+plt.tight_layout(); plt.show()'''))
+
+cells.append(code('''# Five users, in money terms: what the owner would do vs what each agent does
+personas = pd.DataFrame([
+    ("Has card debt at 22%", 10_000, 15_000, 0.22, 0.04),
+    ("Debt-free, large savings", 40_000, 0, 0.00, 0.045),
+    ("Small savings, big debt", 3_000, 25_000, 0.19, 0.035),
+    ("Debt on a 0% promotion", 20_000, 8_000, 0.00, 0.05),
+    ("Owner today (debt paid)", 2_500, 0, 0.20, 0.04)],
+    columns=["user", "cash", "debt", "card_rate", "safe_rate"])
+out = []
+for _, u in personas.iterrows():
+    t = owner_rule(u.cash, u.debt, u.card_rate, u.safe_rate)
+    row = {"user": u.user, "owner would: pay cards / deposit / risk": f"${t[0]:,.0f} / ${t[1]:,.0f} / ${t[2]:,.0f}"}
+    for name in AGENTS[:3]:
+        a = agent_alloc(name, u)
+        row[name] = f"${a[0]:,.0f} / ${a[1]:,.0f} / ${a[2]:,.0f}"
+    gap = u.card_rate - u.safe_rate
+    pay = min(u.cash, u.debt) if (u.debt > 0 and gap >= hi) else 0.0
+    row["owner's rule agent (after its questions)"] = f"${pay:,.0f} / ${u.cash - pay:,.0f} / ${(u.cash - pay) * u.safe_rate * r_hat:,.0f}"
+    out.append(row)
+pd.DataFrame(out).set_index("user")'''))
+
+cells.append(md("""## 4. Findings
+
+> **Key finding 1.** Copying the owner's **moves** fails as soon as the user's situation differs from the owner's: about \$8,800 per user ends up somewhere the owner would not have put it. The agent that copies the owner's last month (debt-free) leaves indebted users paying ~20% on their cards; the agent that copies the average move pays debts that do not exist.
+>
+> **Key finding 2.** A flexible machine-learning model trained on the owner's decisions is **not** the owner's rule: with 18 decisions from one narrow situation, it reproduces the owner where he has been and extrapolates arbitrarily elsewhere (it is the *worst* agent here, and it sends a debt-free saver's money to cards that do not exist). More data from the same owner would not fix this, because the owner never lived those situations.
+>
+> **Key finding 3.** Learning the owner's decision as a **rule over the situation**, and asking only where the owner's own history cannot tell, places the money of 1,000 users the way the owner would after asking him **13 questions** (about 1 user in 77): each answer cuts the unknown range in two, like a binary search. The profile is not the owner's actions; it is the *reason* behind them, conditioned on the situation, and the agent's questions are chosen where they teach the most (active preference learning, as in [6]).
+
+**Limitations.** One owner, a deterministic rule, and an agent that is handed the rule's *form* (it only learns the parameters). The open problem, and the thesis, is to **discover** that structure from approvals, rejections and corrections; notebook 03 measures how much faster corrections with a reason teach it than yes/no approvals.
+
+## 5. Thesis questions this case opens
+
+1. Can an LLM agent infer a situation-conditioned rule (not a policy over actions) from a few dozen decisions plus the owner's written theses?
+2. How should the agent detect that a user's situation is outside the owner's experience, in high dimension, and ask instead of extrapolating?
+3. When the owner's phase changes (debt paid), how does the agent tell a new phase of the same rule from a new rule?
 
 ## References
 
-1. Wei, X.-S., Cui, Q., Yang, L., Wang, P., & Liu, L. (2019). *RPC: A Large-Scale Retail Product Checkout Dataset.* arXiv:1901.07249.
-2. Li, C., Du, D., et al. (2019). *Data Priming Network for Automatic Check-Out.* ACM Multimedia 2019. arXiv:1904.04978.
-3. Naphade, M., et al. (2023). *The 7th AI City Challenge.* CVPR Workshops. arXiv:2304.07500.
-4. Shoman, M., Aboah, A., et al. (2022). *A Region-Based Deep Learning Approach to Automated Retail Checkout.* CVPR Workshops.
-5. Cai, Y., & Jiao, A. (2023). *DACNet: A Deep Automated Checkout Network with Selective Deblurring.* CVPR Workshops.
-6. Wei, Y., Tran, S. N., Xu, S., Kang, B. H., & Springer, M. (2020). *Deep Learning for Retail Product Recognition: Challenges and Techniques.* Computational Intelligence and Neuroscience.
-7. *RetailKLIP: Finetuning OpenCLIP backbone using metric learning on a single GPU for zero-shot retail product image classification* (2023). arXiv:2312.10282.
-8. Tur, A. O., Conti, A., et al. (2024). *Exploring Fine-grained Retail Product Discrimination with Zero-shot Object Classification Using Vision-Language Models.* IEEE RTSI 2024. arXiv:2409.14963.
-9. Maminta, E. G., & Atienza, R. O. (2026). *What Matters for Grocery Product Retrieval with Open Source Vision Language Models.* arXiv:2605.18029.
-10. *Active learning to minimize annotation effort for retail product recognition* (2024). Journal of Computational Social Science, doi:10.1007/s42001-024-00266-7.
-11. Schubert, M., Riedlinger, T., Kahl, K., & Rottmann, M. (2024). *Deep Active Learning with Noisy Oracle in Object Detection.* VISAPP 2024. arXiv:2310.00372.
-12. Beck, N., Killamsetty, K., et al. (2023). *Beyond Active Learning: Leveraging the Full Potential of Human Interaction via Auto-Labeling, Human Correction, and Human Verification.* arXiv:2306.01277.
-13. Business Insider and The Information (April 2024), reporting on Amazon Just Walk Out human review rates; Amazon disputed the figures.
+1. Gross, D. B., & Souleles, N. S. (2002). *Do Liquidity Constraints and Interest Rates Matter for Consumer Behavior? Evidence from Credit Card Data.* Quarterly Journal of Economics, 117(1), 149–185.
+2. Vihriälä, E. (2023). *Untangling the credit card debt puzzle.* Working paper, University of Oxford (CEPR).
+3. Thaler, R. H., & Johnson, E. J. (1990). *Gambling with the house money and trying to break even: The effects of prior outcomes on risky choice.* Management Science, 36(6), 643–660.
+4. D'Acunto, F., Prabhala, N., & Rossi, A. G. (2019). *The Promises and Pitfalls of Robo-Advising.* Review of Financial Studies, 32(5), 1983–2020.
+5. Takayanagi, T., Izumi, K., Sanz-Cruzado, J., McCreadie, R., & Ounis, I. (2025). *Are Generative AI Agents Effective Personalized Financial Advisors?* SIGIR 2025. arXiv:2504.05862.
+6. Poddar, S., Wan, Y., Ivison, H., Gupta, A., & Jaques, N. (2024). *Personalizing RLHF with Variational Preference Learning.* NeurIPS 2024.
 """))
 
 nb = nbf.v4.new_notebook(); nb["cells"] = cells
 nb["metadata"]["kernelspec"] = {"name": "python3", "display_name": "Python 3"}
-nbf.write(nb, "notebooks/02_vision_self_checkout.ipynb")
+nbf.write(nb, f"notebooks/{FNAME}")
 print("written")

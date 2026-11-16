@@ -1,349 +1,223 @@
-"""Builds notebooks/03_vending_fleet_forecasting.ipynb."""
+"""Builds notebooks/03_press_corrections_vs_approvals.ipynb."""
 import nbformat as nbf
-from style import STYLE_CELL
+from style import STYLE_CELL, header, REPO
 
+FNAME = "03_press_corrections_vs_approvals.ipynb"
 md, code = nbf.v4.new_markdown_cell, nbf.v4.new_code_cell
 cells = []
 
-cells.append(md("""# 03 · When Should the Truck Go? Forecasting and Replenishment for a Small Vending Fleet with Censored Demand
-
-**Author:** Juan Antonio Sainz Gálvez · Applied AI & ML, Conestoga College
-
-<a href="https://colab.research.google.com/github/antoniosg2025-stack/applied-ai-research-portfolio/blob/main/notebooks/03_vending_fleet_forecasting.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
-
----
-
-## Abstract
-
-I operate four cashless vending machines in Ontario: a car dealership service area, a hotel, a medical clinic and an auto-parts yard. Every sale is reported by the payment terminal (Nayax telemetry), so I know each coil's stock at any moment. Two decisions repeat every week: **how much will each coil sell**, and **is it worth driving to a machine today**. The clinic is about an hour away, so a wasted trip is expensive, and an empty coil loses sales.
-
-Two research problems hide inside these decisions. First, **sales are not demand**: when a coil is empty, the customer who wanted it leaves and the data records a zero, so naive forecasts learn to under-stock (censored demand). Second, vending demand per coil is small and intermittent, which is exactly where classic forecasting methods struggle. This notebook reviews the literature on both, then runs a reproducible fleet simulation calibrated to my machines to measure (1) how much censoring biases each forecasting method and (2) how much an economic, forecast-triggered visit rule saves over a fixed weekly route.
-
-> **Data note.** The simulation below uses synthetic data calibrated to my real coil layout and locations; no customer or sales records are published. Section 5 shows the loader that replaces it with an anonymized Nayax export.
-"""))
+cells.append(md(header("03", "Press: Does an Agent Learn the Owner's Taste Faster from Corrections or from Yes/No Approvals? And What Does Waiting Cost?", FNAME,
+    "*Press* is the agent that produces my short videos for four brands (Analyst Channel / Equilibra, GrabGo, Tepeyac Rosarios). "
+    "Nothing is published without my approval, piece by piece. My approvals are the agent's only teacher, so the questions are: "
+    "**which kind of feedback teaches it my criteria fastest**, and **how much reach is lost while pieces wait for me**. "
+    "This notebook uses real metrics from the accounts.")))
 
 cells.append(code(STYLE_CELL))
+cells.append(code('''thesis_card("Press, short videos for 4 brands",
+            ["Reputation: brand and faith content", "Strength: knows each audience",
+             "Rules: disclaimers, banned phrases", "Logos inside the apps' safe zones",
+             "Time: reviews in batches, often late"],
+            "publish this piece\\nor not",
+            "approve / reject,\\ncorrections with a reason")'''))
 
-cells.append(code('''# Infographic: from a sale to a route decision
-fig, ax = plt.subplots(figsize=(12, 3.6)); ax.set_xlim(0, 12); ax.set_ylim(0, 3.6); ax.axis("off")
-steps = [("Card tap at\\nthe machine", PALETTE["navy"]), ("Telemetry:\\ncoil stock now", PALETTE["sky"]),
-         ("Demand forecast\\n(censoring-aware)", PALETTE["teal"]), ("Expected lost $\\nvs trip cost", PALETTE["gold"]),
-         ("Visit or wait", PALETTE["coral"])]
-for i, (t, c) in enumerate(steps):
-    box(ax, (0.2 + i * 2.4, 1.6), 1.9, 1.1, t, c, fontsize=10.5)
-    if i < len(steps) - 1:
-        arrow(ax, (2.1 + i * 2.4, 2.15), (2.6 + i * 2.4, 2.15))
-box(ax, (3.6, 0.15), 4.8, 0.85, "Restock list per coil + one shopping list", PALETTE["grey"], fontsize=10)
-arrow(ax, (10.75, 1.6), (8.4, 0.6))
-ax.set_title("Vending fleet decision loop", pad=6)
-plt.show()'''))
+cells.append(md("""## 1. Real data: what the accounts show
 
-cells.append(md("""## 1. Literature review
-
-### 1.1 Vending operations as an inventory problem
-Smart vending machines turn replenishment into a joint inventory and routing problem. Park and Yoo propose a heuristic for smart vending systems under a replenishment-point, order-up-to policy that decides replenishment points, compartment allocation, machine thresholds and vehicle routes, assuming Poisson customer arrivals and a one-day lead time [1]. Recent work applies machine learning to the warehouse side: Mehmood et al. forecast inventory for an IoT-enabled warehouse serving about 1,500 vending machines [2], and a 2026 follow-up compares XGBoost, ARIMAX, Prophet and SVR on the same setting, finding that external variables (holidays, replenishment cycles, machine outages) improve every model and that XGBoost performs best [3]. Both studies forecast **aggregate** warehouse demand; the coil-level decision of a small operator is less studied.
-
-### 1.2 Intermittent demand
-A single coil sells a few units a day, with many zero days. Croston's method, which smooths demand sizes and intervals separately, is the standard and ships in ERP systems such as SAP [4]. Syntetos and Boylan corrected its bias (SBA) [5], and Teunter, Syntetos and Babai (TSB) update the *probability* of demand every period, so the forecast decays when a product stops selling [4, 6]. The M5 competition, which forecast 42,840 hierarchical Walmart unit-sales series, many of them intermittent, showed that machine-learning methods, in particular gradient-boosted trees trained across many series, beat the statistical benchmarks [7].
-
-### 1.3 Sales are not demand: censoring and lost sales
-In a lost-sales system, demand is not observed when stock runs out; one only knows that demand was at least the sales [8]. Nahmias compares maximum-likelihood and other estimators for this censored case [8], Agrawal and Smith show that retail demand with unobserved lost sales fits a negative binomial better than Poisson or normal [9], and Jain, Rudi and Wang show that knowing *when* the stock-out happened recovers almost all the lost information [10]. Recent work in the International Journal of Forecasting confirms that ignoring the stock policy biases demand forecasts [11]. Telemetry gives a vending operator exactly that stock-out timing, which most of the literature treats as unavailable.
-
-**Gap.** Vending studies forecast warehouse aggregates; censoring studies assume single items and fixed review periods. A small fleet operator needs coil-level, censoring-aware forecasts feeding a **visit decision that prices the trip**.
+Two sources, both from the Press agent's own records (Zernio analytics and the weekly review of 14 Nov 2026). Post text and anyone's names are removed; only metrics remain.
 """))
 
-cells.append(md("""## 2. The fleet (calibrated to my machines; all numbers are stated assumptions)
-
-| Machine | Profile | Round trip from home | Demand pattern |
-|---|---|---|---|
-| dealership | Service-area staff and customers | 16 km | Strong on weekdays, quiet on Sunday |
-| hotel | Guests | 190 km | Steady, busier Friday to Sunday |
-| clinic | Patients and staff | 220 km (about an hour each way) | Weekdays only, low volume |
-| parts_yard | Workers | 50 km | Weekdays, low volume |
-
-Each machine has the layout I use: 4 chip coils (8 slots each), 6 chocolate coils (10 slots) and 10 drink coils (5 slots). Daily demand per coil is **negative binomial** [9] with a product popularity effect and the machine's day-of-week pattern. Driving cost is $0.70 per km (my own time is not priced); average margin is $1.10 per snack and $1.40 per drink.
-"""))
-
-cells.append(code('''import numpy as np
+cells.append(code(f'''import numpy as np
 import pandas as pd
-from sklearn.ensemble import HistGradientBoostingRegressor
 
-SEED = 3
-CATS = [("chips", 4, 8, 1.10), ("chocolate", 6, 10, 1.10), ("drink", 10, 5, 1.40)]   # (category, coils, capacity, margin)
-MACHINES = pd.DataFrame([
-    # name, base demand per coil per day, round-trip km, round-trip hours, Mon..Sun multipliers
-    ("dealership", 1.30, 16, 0.5, [1.2, 1.2, 1.2, 1.2, 1.1, 0.5, 0.2]),
-    ("hotel",      1.20, 190, 2.3, [0.8, 0.8, 0.8, 0.9, 1.2, 1.4, 1.3]),
-    ("clinic",     0.90, 220, 2.2, [1.3, 1.3, 1.3, 1.3, 1.2, 0.2, 0.0]),
-    ("parts_yard", 0.45, 50, 0.8, [1.2, 1.2, 1.2, 1.2, 1.2, 0.4, 0.1]),
-], columns=["machine", "base", "km", "hours", "dow"])
-KM_COST, HOUR_COST, DISPERSION = 0.70, 0.0, 2.0   # owner's driving time not priced
+def load(name):
+    try:
+        return pd.read_csv(f"../data/{{name}}")
+    except FileNotFoundError:   # in Colab
+        return pd.read_csv(f"https://raw.githubusercontent.com/{REPO}/main/data/{{name}}")
 
-def trip_cost(m):
-    return m.km * KM_COST + m.hours * HOUR_COST
+posts = load("press_posts_metrics.csv")            # the 40 most-viewed and 26 least-viewed of 186 posts
+pairs = load("grabgo_en_vs_es_tiktok.csv")          # the same GrabGo piece in English and in Spanish
+print(f"{{len(posts)}} posts · total views {{posts.views.sum():,}} · top post {{posts.views.max():,}} views · median {{posts.views.median():.0f}}")
+pairs'''))
 
-def make_coils(rng):
-    rows = []
-    for _, m in MACHINES.iterrows():
-        for cat, n, cap, margin in CATS:
-            pop = rng.lognormal(0, 0.45, n); pop /= pop.mean()      # some products sell much more
-            for j in range(n):
-                rows.append(dict(machine=m.machine, coil=f"{cat}_{j+1}", category=cat,
-                                 capacity=cap, margin=margin, mean=m.base * pop[j]))
-    return pd.DataFrame(rows)
+cells.append(code('''fig, ax = plt.subplots(figsize=(10.5, 4.8))
+p = pairs.dropna()
+x = np.arange(len(p)); w = 0.38
+ax.bar(x - w / 2, p.en_hold_2s_pct, w, color=PALETTE["grey"], label="English version")
+ax.bar(x + w / 2, p.es_hold_2s_pct, w, color=PALETTE["teal"], label="Spanish version")
+ax.set_xticks(x); ax.set_xticklabels(p.piece, rotation=25, ha="right"); ax.grid(axis="x", visible=False)
+ax.set_title("Same GrabGo piece, two languages: viewers still watching at 2 seconds (TikTok)")
+ax.set_ylabel("% of viewers still watching at 2 s"); ax.legend()
+plt.tight_layout(); plt.show()'''))
 
-def demand(rng, mu):
-    """Negative binomial draw with mean mu (gamma-Poisson mixture)."""
-    return rng.poisson(rng.gamma(DISPERSION, mu / DISPERSION)) if mu > 0 else 0
+cells.append(md("""**What the real data says about the owner's decisions.** The Spanish version keeps about twice as many viewers in the first 2 seconds in 8 of 8 pairs. The agent proposed on 14 Nov to write each script in Spanish first, but the proposal, like the white-paper update proposed on 31 Oct, was still **waiting for my approval**. During the same weeks the Equilibra channel published nothing new because its next piece was not approved, and Facebook follower growth fell from +26 in a week to +4. The agent was right and blocked; the bottleneck was the approval.
 
-coils = make_coils(np.random.default_rng(SEED))
-summary = coils.groupby("machine").agg(coils=("coil", "size"), expected_units_per_day=("mean", "sum")).round(1)
-summary["round_trip_cost_$"] = [round(trip_cost(MACHINES.set_index("machine").loc[i]), 0) for i in summary.index]
-summary'''))
+## 2. Literature
 
-cells.append(md("""## 3. Experiment A: how much does censoring bias the forecast?
+| Research line | Key result | What it gives this case |
+|---|---|---|
+| RL from human preferences [1] | Agents can learn complex goals from human comparisons of behaviour, needing feedback on a small fraction of interactions | Approvals are learnable feedback, but each yes/no carries little information |
+| Feedback on explanations [2] | Penalizing a model for relying on features a human marks as wrong ("right for the right reasons") teaches it the intended rule with far less data | A correction that names *why* a piece is wrong is a different, richer signal than a rejection |
+| Personalized alignment [3, 4] | Preferences are individual; retrieving a user's own history improves personalized outputs (LaMP) | The owner's past decisions are the profile; the question is which form of feedback fills it fastest |
+| Generative agents of real people [5] | Interview-based context lets agents reproduce individuals far better than demographic descriptions | Rich statements of reasons beat bare labels |
 
-We simulate one year of a **fixed weekly route** (every machine refilled to full every Monday), record what the terminal sees (sales and the time a coil runs out) and compare four ways of estimating each coil's true mean daily demand:
-
-1. **Mean of sales** — what a spreadsheet does.
-2. **TSB** — the intermittent-demand method of [6], fitted on sales.
-3. **In-stock days only** — average sales over the days the coil never ran out. Intuitive, but it keeps only the *low-demand* days.
-4. **Exposure rate** — sales divided by the hours the coil actually had stock. The terminal timestamps the last sale before a coil empties, which is the stock-out timing that [10] shows is almost all the information needed.
-5. **Global gradient boosting** — one Poisson model for all coils, trained on sales per unit of exposure with machine, category, day of week and the coil's exposure rate as features (the M5-style global approach [7]).
-
-The target is the coil's true average demand, which only a simulation can reveal.
+**Gap.** Personalization benchmarks use one form of feedback at a time. For an owner with little time, the practical question is the *exchange rate*: how many yes/no approvals is one correction with a reason worth?
 """))
 
-cells.append(code('''def simulate_fixed_route(coils, days=364, seed=SEED):
-    """Weekly refill on Mondays. One row per coil per day: demand, sales, out-of-stock flag and exposure
-    (fraction of the day the coil had stock, known from the time of the last sale before it emptied)."""
-    rng = np.random.default_rng(seed)
-    dow_map = MACHINES.set_index("machine").dow.to_dict()
-    stock = coils.capacity.to_numpy().copy()
-    rows = []
-    for d in range(days):
-        dow = d % 7
-        if dow == 0:
-            stock = coils.capacity.to_numpy().copy()
-        for i, c in enumerate(coils.itertuples()):
-            dem = demand(rng, c.mean * dow_map[c.machine][dow])
-            s0 = stock[i]
-            if s0 == 0:
-                exposure = 0.0                                   # empty all day
-            elif dem > s0:
-                exposure = np.sort(rng.random(dem))[s0 - 1]     # time of the sale that emptied the coil
+cells.append(md("""## 3. Experiment 1: corrections with a reason versus yes/no approvals
+
+Each piece of content is described by 12 attributes (language, hook with a number, a chart, a meme format, a finance disclaimer, a banned phrase, logo inside the safe zone, a claim to be "official", a price claim, a call to action, length, topic). The owner's decision has two layers, as in real life:
+
+- **Hard rules** (any violation means "no"): a banned phrase, a finance piece without its disclaimer, a logo outside the safe zone, a claim to be an official site.
+- **Taste** (a soft preference): likes charts and numbers in the hook, dislikes long pieces, prefers Spanish for GrabGo.
+
+Two agents see the same pieces and ask the owner about each one during training:
+
+1. **Yes/no**: learns only whether the owner approved.
+2. **Correction with a reason**: when the owner rejects a piece for a rule, he names the rule ("banned phrase"); the agent turns it into a hard constraint. Taste is still learned from yes/no.
+
+**Error:** on 2,000 new pieces, the share where the agent's decision differs from the owner's, and the share of **pieces the agent would publish that the owner would reject** (the dangerous error).
+"""))
+
+cells.append(code('''from sklearn.linear_model import LogisticRegression
+
+ATTR = ["spanish", "number_hook", "chart", "meme", "disclaimer", "banned_phrase", "logo_safe",
+        "claims_official", "price_claim", "cta", "long", "finance"]
+RULES = {"banned_phrase": lambda a: a["banned_phrase"] == 1, "missing_disclaimer": lambda a: a["finance"] == 1 and a["disclaimer"] == 0,
+         "logo_outside_safe_zone": lambda a: a["logo_safe"] == 0, "claims_official": lambda a: a["claims_official"] == 1}
+TASTE = dict(spanish=0.8, number_hook=0.9, chart=1.1, meme=0.2, cta=0.3, long=-1.2, price_claim=-0.4)
+
+def make_piece(rng):
+    a = {k: int(rng.random() < p) for k, p in zip(ATTR, [0.5, 0.4, 0.3, 0.4, 0.7, 0.08, 0.85, 0.05, 0.2, 0.6, 0.3, 0.5])}
+    return a
+
+def owner_decides(a, rng):
+    broken = [r for r, f in RULES.items() if f(a)]
+    if broken: return 0, broken[0]
+    z = sum(TASTE.get(k, 0) * v for k, v in a.items()) - 0.6 + rng.normal(0, 0.5)
+    return int(z > 0), None
+
+def vec(a): return np.array([a[k] for k in ATTR], float)
+
+def train_and_test(n_feedback, with_reasons, seed):
+    rng = np.random.default_rng(seed); X, y, learned_rules = [], [], set()
+    for _ in range(n_feedback):
+        a = make_piece(rng); dec, reason = owner_decides(a, rng)
+        if with_reasons and reason: learned_rules.add(reason)
+        if with_reasons and reason: continue                     # rule rejections teach the rule, not the taste
+        X.append(vec(a)); y.append(dec)
+    model = LogisticRegression(C=2.0).fit(X, y) if len(set(y)) == 2 else None
+    test_rng = np.random.default_rng(10_000 + seed); errs = danger = 0; N = 2000
+    for _ in range(N):
+        a = make_piece(test_rng); truth, _ = owner_decides(a, test_rng)
+        if any(RULES[r](a) for r in learned_rules): pred = 0
+        else: pred = int(model.predict_proba([vec(a)])[0, 1] > 0.5) if model else 1
+        errs += pred != truth; danger += (pred == 1 and truth == 0)
+    return errs / N, danger / N
+
+grid = [10, 20, 40, 80, 160, 320, 640]
+curve = []
+for n in grid:
+    for wr in (False, True):
+        e = np.array([train_and_test(n, wr, s) for s in range(6)])
+        curve.append(dict(owner_reviews=n, feedback="correction with a reason" if wr else "yes/no only",
+                          disagreement_pct=100 * e[:, 0].mean(), would_publish_rejected_pct=100 * e[:, 1].mean()))
+curve = pd.DataFrame(curve)
+curve.pivot(index="owner_reviews", columns="feedback", values="disagreement_pct").round(1)'''))
+
+cells.append(code('''fig, ax = plt.subplots(figsize=(10.5, 4.8))
+for fb, c in [("yes/no only", PALETTE["grey"]), ("correction with a reason", PALETTE["teal"])]:
+    d = curve[curve.feedback == fb]
+    ax.plot(d.owner_reviews, d.disagreement_pct, "-o", color=c, lw=2.6, ms=8, label=fb)
+ax.set_xscale("log"); ax.set_xticks(grid); ax.set_xticklabels(grid)
+ax.set_title("New pieces where the agent decides differently from the owner")
+ax.set_xlabel("Owner reviews used for learning (log scale)"); ax.set_ylabel("% of new pieces"); ax.legend()
+plt.tight_layout(); plt.show()
+
+# Exchange rate: how many yes/no reviews reach the error that corrections reach with 40 reviews?
+target = curve[(curve.feedback == "correction with a reason") & (curve.owner_reviews == 40)].disagreement_pct.item()
+yn = curve[curve.feedback == "yes/no only"].set_index("owner_reviews").disagreement_pct
+reach = yn[yn <= target]
+print(f"With corrections, 40 reviews reach {target:.1f}% disagreement. Yes/no needs "
+      f"{reach.index.min() if len(reach) else 'more than 640'} reviews to do the same.")'''))
+
+cells.append(md("""## 4. Experiment 2: what waiting for approval costs
+
+Market-reactive pieces (a meme about today's Bitcoin move) lose value fast; evergreen pieces (how to pray the Rosary) do not. Using the real view distribution of the accounts (the posts above), each proposed piece has a potential reach drawn from that distribution and a value half-life of **2 days** if reactive, **30 days** if evergreen (assumptions). Three approval policies:
+
+1. **Owner reviews everything in a weekly batch** (what happened in practice: proposals waited a week or more).
+2. **Owner reviews everything within 1 day**.
+3. **Agent publishes alone** when it predicts the owner's approval with high confidence and no hard rule is at risk (the "correction" agent from Experiment 1 after 160 reviews); everything else waits for the weekly batch.
+"""))
+
+cells.append(code('''rng = np.random.default_rng(3)
+reach_pool = posts.views[posts.views > 0].to_numpy()
+corr_rules = set(RULES)                                   # the correction agent has learned the four rules
+X, y = [], []
+for _ in range(160):
+    a = make_piece(rng); d, reason = owner_decides(a, rng)
+    if reason is None: X.append(vec(a)); y.append(d)
+taste_model = LogisticRegression(C=2.0).fit(X, y)
+
+def simulate(policy, n=3000, seed=5):
+    rng = np.random.default_rng(seed); kept = lost = wrong = 0.0; auto = 0
+    for _ in range(n):
+        a = make_piece(rng); truth, _ = owner_decides(a, rng)
+        reach = rng.choice(reach_pool); half = 2 if rng.random() < 0.5 else 30
+        if policy == "weekly batch": delay = rng.uniform(0, 7) + 1
+        elif policy == "owner within 1 day": delay = rng.uniform(0, 1)
+        else:
+            rule_risk = any(RULES[r](a) for r in corr_rules)
+            p = taste_model.predict_proba([vec(a)])[0, 1]
+            if not rule_risk and p > 0.9:
+                auto += 1; delay = 0
+                if truth == 0: wrong += 1; continue          # published something the owner would reject
             else:
-                exposure = 1.0
-            sold = min(dem, s0); stock[i] -= sold
-            rows.append((d, dow, i, dem, sold, stock[i] == 0, exposure))
-    return pd.DataFrame(rows, columns=["day", "dow", "coil_id", "demand", "sales", "stocked_out", "exposure"])
+                delay = rng.uniform(0, 7) + 1
+        if truth == 1:
+            v = reach * 0.5 ** (delay / half); kept += v; lost += reach - v
+    return dict(policy=policy, views_kept=kept, views_lost_to_waiting=lost,
+                pieces_owner_would_reject_published=wrong, published_without_review_pct=100 * auto / n)
 
-log = simulate_fixed_route(coils)
-lost_share = 1 - log.sales.sum() / log.demand.sum()
-print(f"Days simulated: {log.day.nunique()} | coil-days: {len(log):,} | share of demand lost to empty coils: {lost_share:.1%}")'''))
+wait = pd.DataFrame([simulate(p) for p in ["weekly batch", "owner within 1 day", "agent publishes when confident"]]).set_index("policy")
+wait["share_of_reach_lost_pct"] = 100 * wait.views_lost_to_waiting / (wait.views_kept + wait.views_lost_to_waiting)
+wait.round(1)'''))
 
-cells.append(code('''def tsb(series, alpha=0.1, beta=0.1):
-    """Teunter-Syntetos-Babai forecast of mean demand per period [6]."""
-    p, z = None, None
-    for y in series:
-        if p is None:
-            p, z = float(y > 0), float(y) if y > 0 else 1.0
-            continue
-        p = p + beta * ((y > 0) - p)
-        if y > 0:
-            z = z + alpha * (y - z)
-    return p * z
-
-dow_mult = {m: np.array(v) for m, v in MACHINES.set_index("machine").dow.items()}
-train = log[log.day < 280]
-truth = coils["mean"].to_numpy() * np.array([dow_mult[m].mean() for m in coils.machine])  # average over the week
-
-est = pd.DataFrame(index=coils.index)
-est["mean_of_sales"] = train.groupby("coil_id").sales.mean()
-est["tsb"] = train.groupby("coil_id").sales.apply(lambda s: tsb(s.to_numpy()))
-# 3) in-stock days only: the coil still had units at the end of the day
-instock = train[~train.stocked_out]
-est["in_stock_days"] = instock.groupby("coil_id").sales.mean()
-# 4) exposure rate: sales divided by the time the coil actually had stock, by day of week [10]
-agg = train.groupby(["coil_id", "dow"])[["sales", "exposure"]].sum()
-rate = (agg.sales / agg.exposure.replace(0, np.nan)).unstack().reindex(columns=range(7))
-est["exposure_rate"] = rate.apply(lambda r: r.fillna(r.mean()).mean(), axis=1)
-# 5) global gradient boosting: Poisson loss on sales per unit of exposure, weighted by exposure
-feat = train[train.exposure > 0].merge(coils[["machine", "category"]], left_on="coil_id", right_index=True)
-coil_rate = train.groupby("coil_id").sales.sum() / train.groupby("coil_id").exposure.sum()
-feat["coil_level"] = feat.coil_id.map(coil_rate)
-X_cols = ["machine", "category", "dow", "coil_level"]
-MCODE = {m: i for i, m in enumerate(MACHINES.machine)}; CCODE = {c[0]: i for i, c in enumerate(CATS)}
-def encode(df):
-    return pd.DataFrame({"machine": df.machine.map(MCODE), "category": df.category.map(CCODE),
-                         "dow": df.dow, "coil_level": df.coil_level})
-gbm = HistGradientBoostingRegressor(loss="poisson", max_iter=300, learning_rate=0.05,
-                                    categorical_features=[0, 1, 2], random_state=0)
-gbm.fit(encode(feat), feat.sales / feat.exposure, sample_weight=feat.exposure)
-grid = coils[["machine", "category"]].copy(); grid["coil_level"] = coil_rate.reindex(coils.index).to_numpy()
-gbm_dow = np.column_stack([gbm.predict(encode(grid.assign(dow=d))) for d in range(7)])
-est["global_gbm"] = gbm_dow.mean(axis=1)
-
-err = pd.DataFrame({m: dict(bias_pct=100 * (est[m].sum() - truth.sum()) / truth.sum(),
-                            mae=np.abs(est[m] - truth).mean())
-                    for m in est.columns}).T.round(2)
-err'''))
-
-cells.append(code('''order = ["mean_of_sales", "tsb", "in_stock_days", "exposure_rate", "global_gbm"]
-colors = [PALETTE["grey"], PALETTE["sky"], PALETTE["coral"], PALETTE["gold"], PALETTE["teal"]]
-fig, ax = plt.subplots(figsize=(11, 4.8))
-bars = ax.bar([o.replace("_", "\\n") for o in order], err.loc[order, "bias_pct"], color=colors)
-ax.axhline(0, color=PALETTE["navy"], lw=1); ax.set_axisbelow(True); ax.grid(axis="x", visible=False)
-for b, v in zip(bars, err.loc[order, "bias_pct"]):
-    ax.text(b.get_x() + b.get_width() / 2, v + (1 if v >= 0 else -1), f"{v:+.1f}%",
-            ha="center", va="bottom" if v >= 0 else "top", fontsize=11, fontweight="bold")
-ax.set_ylim(err.bias_pct.min() - 7, 3)
-ax.set_title("Forecast bias: estimated vs true total demand")
-ax.set_ylabel("Bias (% of true demand)")
+cells.append(code('''fig, ax = plt.subplots(figsize=(10.5, 4.8))
+cols = [PALETTE["coral"], PALETTE["gold"], PALETTE["teal"]]
+bars = ax.bar(wait.index, wait.share_of_reach_lost_pct, color=cols); ax.grid(axis="x", visible=False)
+for b, v, w_ in zip(bars, wait.share_of_reach_lost_pct, wait.pieces_owner_would_reject_published):
+    ax.text(b.get_x() + b.get_width() / 2, v + 0.8, f"{v:.0f}% lost\\n{int(w_)} wrong posts", ha="center", fontsize=11, fontweight="bold")
+ax.set_ylim(0, wait.share_of_reach_lost_pct.max() * 1.3)
+ax.set_title("Reach lost while approved pieces wait (3,000 proposals)")
+ax.set_ylabel("% of potential views lost to waiting")
 plt.tight_layout(); plt.show()'''))
 
-cells.append(code('''# What censoring looks like for one popular coil
-cid = int((coils["mean"] / coils.capacity).idxmax())
-c = log[(log.coil_id == cid) & (log.day < 56)]
-fig, ax = plt.subplots(figsize=(10, 4.6))
-ax.bar(c.day, c.demand, color=PALETTE["light"], edgecolor=PALETTE["grey"], label="true demand (never seen)")
-ax.bar(c.day, c.sales, color=PALETTE["teal"], label="recorded sales")
-for d in c[c.stocked_out].day:
-    ax.axvspan(d - 0.5, d + 0.5, color=PALETTE["coral"], alpha=0.12, lw=0)
-for d in range(0, 56, 7):
-    ax.axvline(d - 0.5, color=PALETTE["navy"], lw=0.8, ls=":")
-ax.set_title(f"{coils.machine[cid]} · {coils.coil[cid]}: sales hit the coil's limit, demand does not")
-ax.set_xlabel("Day (dotted line = Monday refill; red = coil empty)"); ax.set_ylabel("Units")
-ax.legend(loc="upper right"); ax.grid(axis="x", visible=False)
-plt.tight_layout(); plt.show()'''))
+cells.append(md("""## 5. Findings
 
-cells.append(md("""## 4. Experiment B: how often should each machine be visited?
+> **Key finding 1.** A correction that names the broken rule teaches the owner's criteria about **four times faster** than a yes/no approval: with corrections, 40 reviews bring disagreement with the owner to about 17%; yes/no approvals need about 160 reviews to get there, and the gap persists even at 640 reviews (8% vs 14%). For an owner with little time, **asking for the reason** is the cheapest way to transfer his profile.
+>
+> **Key finding 2.** With weekly batch reviews, about **35% of the potential reach** of approved pieces is lost to waiting, because reactive pieces age in days. An agent that publishes alone only when it is confident and no rule is at risk (about 1 piece in 5) cuts the loss to about **12%**, at the cost of 13 published pieces out of 3,000 that the owner would have rejected. That trade-off is the owner's to decide, and it is exactly the decision the thesis wants the agent to learn.
+>
+> **Key finding 3 (real data).** In the real accounts the agent's proposal (Spanish first for GrabGo) was supported by 8 of 8 pairs and still waited for approval, while the Equilibra channel stalled for two weeks for lack of an approved piece. The bottleneck was not the agent's quality but the owner's review time.
 
-The forecast now feeds a decision. For each machine, the operator picks a **visit interval** of *k* days (refill every coil to full each visit). A longer interval saves trips but lets more coils run empty. Using a forecast, the expected margin of one cycle has a closed form: the sum of *k* days of negative-binomial demand is again negative binomial, so expected sales of a coil are E[min(D_k, capacity)]. The planner picks the *k* that maximizes
+**Limitations.** Simulated pieces and owner; the real-post sample is the top 40 and bottom 26 of 186 posts, so it overstates the tail; the half-lives are assumptions.
 
-**expected profit per day = (expected margin of one cycle − trip cost) / k**
+## 6. Thesis questions
 
-and the plan is then tested against the true demand for 26 weeks.
-
-**Plans compared**
-1. **Fixed weekly route** — every machine every 7 days.
-2. **Planned with mean of sales** — the biased forecast.
-3. **Planned with censoring-aware forecast** — the global model of Experiment A.
-4. **Planned with the true demand** — the best a planner could do.
-"""))
-
-cells.append(code('''from scipy.stats import nbinom
-
-def daily_mean(method):
-    """Average daily demand per coil according to each forecast."""
-    if method == "true_demand":
-        return truth
-    if method == "mean_of_sales":
-        return est.mean_of_sales.to_numpy()
-    return est.global_gbm.to_numpy()
-
-def expected_cycle_margin(mu, cap, margin, k):
-    """Sum over coils of margin * E[min(D_k, capacity)], with D_k ~ NB(mean k*mu, r = k*DISPERSION)."""
-    r = k * DISPERSION; p = r / (r + k * mu)
-    j = np.arange(cap.max())
-    tail = 1 - nbinom.cdf(j[None, :], r, p[:, None])            # P(D_k > j)
-    tail = np.where(j[None, :] < cap[:, None], tail, 0)
-    return (margin * tail.sum(axis=1)).sum()
-
-def plan_intervals(method, k_max=28):
-    mu = daily_mean(method); plan = {}
-    for _, m in MACHINES.iterrows():
-        idx = (coils.machine == m.machine).to_numpy()
-        prof = [(expected_cycle_margin(mu[idx], coils.capacity.to_numpy()[idx], coils.margin.to_numpy()[idx], k)
-                 - trip_cost(m)) / k for k in range(1, k_max + 1)]
-        plan[m.machine] = int(np.argmax(prof) + 1)
-    return plan
-
-def evaluate(plan, weeks=26, seeds=range(5)):
-    out = []
-    for seed in seeds:
-        rng = np.random.default_rng(1000 + seed)
-        cap = coils.capacity.to_numpy(); margin = coils.margin.to_numpy(); mach = coils.machine.to_numpy()
-        stock = cap.copy(); sales_m = lost_m = travel = 0.0; visits = 0
-        for d in range(weeks * 7):
-            dow = d % 7
-            for _, m in MACHINES.iterrows():
-                if d % plan[m.machine] == 0:
-                    idx = mach == m.machine; stock[idx] = cap[idx]; travel += trip_cost(m); visits += 1
-            for i, c in enumerate(coils.itertuples()):
-                dem = demand(rng, c.mean * dow_mult[c.machine][dow])
-                sold = min(dem, stock[i]); stock[i] -= sold
-                sales_m += sold * margin[i]; lost_m += (dem - sold) * margin[i]
-        out.append(dict(visits_per_week=visits / weeks, travel_cost_per_week=travel / weeks,
-                        lost_margin_per_week=lost_m / weeks, profit_per_week=(sales_m - travel) / weeks))
-    return pd.DataFrame(out).mean()
-
-plans = {"fixed_weekly": {m: 7 for m in MACHINES.machine}}
-for method in ["mean_of_sales", "censoring_aware", "true_demand"]:
-    plans[method] = plan_intervals(method)
-intervals = pd.DataFrame(plans).T.add_prefix("days_between_visits_")
-res = pd.DataFrame({p: evaluate(plan) for p, plan in plans.items()}).T.round(1)
-pd.concat([intervals, res], axis=1)'''))
-
-cells.append(code('''fig, ax = plt.subplots(figsize=(10, 4.8))
-labels = ["fixed weekly\\nroute", "planned with\\nmean of sales", "planned with\\ncensoring-aware", "planned with\\ntrue demand"]
-bars = ax.bar(labels, res.profit_per_week, color=[PALETTE["grey"], PALETTE["sky"], PALETTE["teal"], PALETTE["navy"]])
-ax.set_axisbelow(True); ax.grid(axis="x", visible=False)
-for b, v, t in zip(bars, res.profit_per_week, res.travel_cost_per_week):
-    ax.text(b.get_x() + b.get_width() / 2, v + 4, f"${v:,.0f}", ha="center", fontsize=12, fontweight="bold")
-    ax.text(b.get_x() + b.get_width() / 2, v / 2, f"travel paid\\n${t:,.0f}", ha="center", color="white", fontsize=9.5)
-ax.set_title("Weekly profit after travel cost (26 weeks, 4 machines, mean of 5 runs)")
-ax.set_ylabel("$ per week")
-plt.tight_layout(); plt.show()'''))
-
-cells.append(md("""## 5. Replacing the simulation with real data
-
-The terminal reports one row per transaction (machine, coil, product, price, time). The function below turns an anonymized export into the same coil-day table used above, with the out-of-stock flag derived from the fill log. The real export is not published; only the code is.
-
-```python
-def load_nayax_export(path, fills):
-    tx = pd.read_csv(path, parse_dates=["time"])          # machine, coil, price, time
-    tx["day"] = tx.time.dt.normalize()
-    daily = tx.groupby(["machine", "coil", "day"]).size().rename("sales").reset_index()
-    # stock after each day = last fill quantity minus cumulative sales since that fill
-    ...
-    return daily
-```
-"""))
-
-cells.append(md("""## 6. Discussion
-
-Read the exact numbers from the tables above; the pattern is what matters.
-
-- **Censoring is not a rounding error.** Under a weekly route about 30% of demand is lost to empty coils, and the mean of recorded sales understates demand by about the same amount. TSB, designed for intermittent demand, is even more biased because it is fitted on sales: a good intermittent-demand method does not fix a censoring problem.
-- **"Only use in-stock days" is a trap.** It halves the bias but keeps it, because a coil stays in stock precisely on the days demand was low.
-- **Stock-out timing fixes it.** Dividing sales by the time the coil actually had stock brings the bias to a few percent, the practical lesson of [10]. The global gradient-boosting model has the lowest per-coil error and, unlike per-coil averages, can forecast a new product or machine from similar ones.
-- **Planning visit intervals beats the weekly route by roughly 70–80% in weekly profit**: the nearby dealership is visited every 2–3 days and the distant clinic every 3 weeks. With the biased forecast, the planner thinks coils lose less than they do, spaces the busy machine's visits too far apart and leaves money in the empty coils; the censoring-aware forecast recovers more than half of the gap to the true-demand plan.
-
-**Limitations.** Synthetic demand, planning ignores the day-of-week pattern, no substitution between products (a customer facing an empty Coke coil may buy Pepsi [1]), one vehicle, and trips priced independently instead of as one multi-stop route.
-
-## 7. Thesis questions
-
-1. **Agentic replenishment.** Can an LLM agent that reads the telemetry, the forecast and my calendar propose the week's route and shopping list, and learn from my approvals and corrections when to act alone (connecting with notebook 01)?
-2. **Substitution-aware forecasting.** When a coil is empty, how much of its demand moves to neighbouring coils? Estimating substitution from transaction timing would improve both the forecast and the planogram.
-3. **Fleet-level learning.** Can a global model trained across many small operators' machines forecast a newly installed machine from its location type alone (cold start)?
+1. How should an LLM agent turn a free-text correction ("no uses esa frase") into a reusable constraint across brands, and know when the correction is brand-specific?
+2. What is the optimal moment to ask for a review, balancing the owner's time against content aging?
+3. Can the agent detect that the owner's taste is drifting (for example, after a viral post) and ask again about rules it considered settled?
 
 ## References
 
-1. Park, Y.-B., & Yoo, J.-S. (2012). *A heuristic for the inventory management of smart vending machine systems.* Journal of Industrial Engineering and Management, 5(2), 354–363. doi:10.3926/jiem.587
-2. Mehmood, U., Broderick, J., Davies, S., Bashir, A. K., & Rabie, K. (2024). *Machine Learning-Based Predictive Inventory for a Vending Machine Warehouse.* IEEE Internet of Things Magazine. doi:10.1109/IOTM.001.2300271
-3. *A Data-Driven Predictive Framework for Inventory Optimization Using Context-Augmented Machine Learning Models* (2026). arXiv:2601.05033.
-4. Croston, J. D. (1972). *Forecasting and stock control for intermittent demands.* Operational Research Quarterly, 23(3), 289–303.
-5. Syntetos, A. A., & Boylan, J. E. (2005). *The accuracy of intermittent demand estimates.* International Journal of Forecasting, 21(2), 303–314.
-6. Teunter, R. H., Syntetos, A. A., & Babai, M. Z. (2011). *Intermittent demand: Linking forecasting to inventory obsolescence.* European Journal of Operational Research, 214(3), 606–615.
-7. Makridakis, S., Spiliotis, E., & Assimakopoulos, V. (2022). *M5 accuracy competition: Results, findings, and conclusions.* International Journal of Forecasting, 38(4), 1346–1364.
-8. Nahmias, S. (1994). *Demand estimation in lost sales inventory systems.* Naval Research Logistics, 41(6), 739–757.
-9. Agrawal, N., & Smith, S. A. (1996). *Estimating negative binomial demand for retail inventory management with unobservable lost sales.* Naval Research Logistics, 43(6), 839–861.
-10. Jain, A., Rudi, N., & Wang, T. (2015). *Demand Estimation and Ordering Under Censoring: Stock-Out Timing Is (Almost) All You Need.* Operations Research, 63(1), 134–150.
-11. Trapero, J. R., Holgado de Frutos, E., & Pedregal, D. J. (2024). *Demand forecasting under lost sales stock policies.* International Journal of Forecasting, 40(3), 1055–1068.
+1. Christiano, P., Leike, J., Brown, T., Martic, M., Legg, S., & Amodei, D. (2017). *Deep reinforcement learning from human preferences.* NeurIPS 2017.
+2. Ross, A. S., Hughes, M. C., & Doshi-Velez, F. (2017). *Right for the Right Reasons: Training Differentiable Models by Constraining their Explanations.* IJCAI 2017.
+3. Salemi, A., Mysore, S., Bendersky, M., & Zamani, H. (2024). *LaMP: When Large Language Models Meet Personalization.* ACL 2024. arXiv:2304.11406.
+4. Poddar, S., et al. (2024). *Personalizing RLHF with Variational Preference Learning.* NeurIPS 2024.
+5. Park, J. S., et al. (2024). *Generative Agent Simulations of 1,000 People.* arXiv:2411.10109.
 """))
 
 nb = nbf.v4.new_notebook(); nb["cells"] = cells
 nb["metadata"]["kernelspec"] = {"name": "python3", "display_name": "Python 3"}
-nbf.write(nb, "notebooks/03_vending_fleet_forecasting.ipynb")
+nbf.write(nb, f"notebooks/{FNAME}")
 print("written")
