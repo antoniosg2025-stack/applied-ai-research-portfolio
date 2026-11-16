@@ -134,6 +134,37 @@ footer a { color: #E8EEF6; }
 a.case:hover { transform: translateY(-2px); }
 [id] { scroll-margin-top: 64px; }
 
+
+.figs { display: grid; gap: 16px; margin-top: 26px; }
+.figs .panel h3 { font-size: 18px; margin: 4px 6px 4px; line-height: 1.3; }
+.whatif { background: linear-gradient(180deg, #0F1E33 0%, #13294A 100%); color: #E3EAF3; }
+.whatif h2 { color: #fff; font-size: clamp(30px, 4.4vw, 50px); letter-spacing: -.02em; }
+.whatif .lede { color: #C9D5E4; }
+.whatif .eyebrow { margin-bottom: 12px; }
+.wpanel { margin-top: 26px; background: #0B1729; border: 1px solid #27426A; border-radius: 18px; padding: 18px; }
+.wpanel .control label { color: #fff; }
+.wpanel .control output { color: var(--gold); }
+.wpanel input[type=range] { accent-color: var(--gold); }
+.wsub { font-size: 14px; color: #9DB0C7; margin: 0 6px 6px; }
+.biz { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; margin-top: 16px; }
+.b { background: #13243D; border: 1px solid #27426A; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; text-align: left; color: inherit; font: inherit; }
+.b.sel { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; }
+.b .nm { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--gold); }
+.b .u { font-size: 14px; color: #C9D5E4; }
+.b .row { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.b .now { font-size: 14px; color: #9DB0C7; }
+.b .now input { width: 64px; font: 600 15px var(--mono); background: #0B1729; color: #fff; border: 1px solid #3A5A86; border-radius: 8px; padding: 4px 6px; }
+.b .agent { font-family: var(--display); font-weight: 800; font-size: 40px; line-height: 1; color: #fff; letter-spacing: -.02em; }
+.b .x { font-family: var(--mono); font-weight: 600; color: var(--gold); font-size: 16px; }
+.b .err { font-size: 13px; color: #F1A9A7; }
+.b .src { font-size: 12px; color: #7F93AD; }
+.b .src.as { color: #E0A526; }
+.evid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin-top: 18px; }
+.ev { border-left: 4px solid var(--gold); background: rgba(255,255,255,.04); border-radius: 0 12px 12px 0; padding: 12px 16px; font-size: 15px; color: #DCE5F0; }
+.ev b { color: #fff; font-family: var(--mono); }
+.wchart { width: 100%; height: 340px; }
+.caveat { font-size: 13px; color: #9DB0C7; margin: 14px 4px 0; }
+
 @media (max-width: 860px) {
   .cover { padding: 40px 0 36px; }
   .cover .grid { grid-template-columns: 1fr; gap: 28px; }
@@ -220,6 +251,7 @@ a.case:hover { transform: translateY(-2px); }
     <a class="home" href="#top">Portfolio</a>
     <div class="chips" id="chips">
       <a class="chip" href="#cases">All cases</a>
+      <a class="chip" href="#what-if">What if</a>
       <a class="chip" href="#case-01">01 Agents</a>
       <a class="chip" href="#case-02">02 Equilibra</a>
       <a class="chip" href="#case-03">03 Press</a>
@@ -280,6 +312,32 @@ a.case:hover { transform: translateY(-2px); }
         <p class="line">of lots where agent and owner disagree, once his tolerance is learned per product.</p>
         <span class="state">Read the case →</span>
       </a>
+    </div>
+  </div>
+</section>
+
+
+<section class="whatif" id="what-if">
+  <div class="wrap">
+    <p class="eyebrow">Why it matters · productivity</p>
+    <h2>What if the agents never stopped to wait for me?</h2>
+    <p class="lede read">Today every agent stops at my approval, and I can only look at one business at a time. When I spent a week on one project, the others stood still. An agent that decides like me only asks when it is unsure, so the same few minutes of my attention clear many more decisions.</p>
+    <div class="wpanel">
+      <div class="control">
+        <label for="askq">How often the agent still asks me</label>
+        <output id="askOut" for="askq">27%</output>
+        <input id="askq" type="range" min="0" max="9" step="1" value="3">
+      </div>
+      <p class="wsub" id="askNote">27% is what the per-type profile measured in case 01, at 85% confidence. Each output below is multiplied by <b id="mult">3.7×</b>.</p>
+      <div class="biz" id="biz"></div>
+      <div id="wchart" class="wchart"></div>
+      <p class="wsub" id="wchartNote"></p>
+      <div class="evid">
+        <div class="ev">SEO, real decision log: <b>9 of 24</b> changes ended the first week waiting for me. Over 12 weeks, days lost waiting fall from <b>1,260</b> to <b>356</b> with reversibility rules that travel across sites.</div>
+        <div class="ev">Press: a weekly approval batch loses <b>35%</b> of the reach of pieces I would approve. When the agent publishes the <b>20%</b> it is sure about, the loss drops to <b>12%</b>.</div>
+        <div class="ev">Agents: at 27% questions, the agent made <b>0.24</b> decisions per 100 that I would have made differently. Mistakes grow when it asks less: move the control to see the cost.</div>
+      </div>
+      <p class="caveat">How this is computed: output with the agent = output today × (100 ÷ % of decisions it still asks me), assuming my review time stays the same and the agent's own capacity is not the limit. The question and error rates come from the case 01 simulation. Numbers marked <span style="color: var(--gold)">assumption</span> are placeholders until I enter my real weekly figures.</p>
     </div>
   </div>
 </section>
@@ -388,7 +446,7 @@ a.case:hover { transform: translateY(-2px); }
     <div class="big num" style="color: var(--gold)">$8,800</div>
     <div style="color: var(--muted)">misplaced per user when the agent copies the owner's moves</div>
     <p class="lede read">Equilibra helps users study their portfolio with their own AI. The owner's rule is simple: pay off every card first, keep a stable cushion, and put at risk only what a fixed deposit would pay in a year. Copying his actions breaks for users with different debts and income. Learning the rule over the situation, with 13 well-chosen questions to the owner, decides for 1,000 different users as he would.</p>
-    <span class="pill">Interactive charts for this case are being built</span>
+    <div class="figs" data-case="02"></div>
     <div class="pager"><a href="#case-01"><span>Previous</span>01 · Agents</a><a href="#cases"><span>Back</span>All cases</a><a class="next" href="#case-03"><span>Next</span>03 · Press</a></div>
     <p class="note" style="margin-top:18px">Code and full notebook: <a href="https://github.com/antoniosg2025-stack/applied-ai-research-portfolio/blob/main/notebooks/02_equilibra_situation_rules.ipynb">02_equilibra_situation_rules.ipynb</a></p>
   </div>
@@ -401,7 +459,7 @@ a.case:hover { transform: translateY(-2px); }
     <div class="big num" style="color: var(--coral)">4× faster</div>
     <div style="color: var(--muted)">learning when the owner explains why, instead of only yes or no</div>
     <p class="lede read">Press is the content agent for social networks. Waiting for weekly approval batches loses about 35% of the reach of pieces the owner would have approved. Letting the agent publish alone when it is confident cuts the loss to 12%, with 13 wrong posts out of 3,000. In our real posts, the Spanish version holds viewers about twice as long at 2 seconds in 8 of 8 pairs.</p>
-    <span class="pill">Interactive charts for this case are being built</span>
+    <div class="figs" data-case="03"></div>
     <div class="pager"><a href="#case-02"><span>Previous</span>02 · Equilibra</a><a href="#cases"><span>Back</span>All cases</a><a class="next" href="#case-04"><span>Next</span>04 · SEO</a></div>
     <p class="note" style="margin-top:18px">Code and full notebook: <a href="https://github.com/antoniosg2025-stack/applied-ai-research-portfolio/blob/main/notebooks/03_press_corrections_vs_approvals.ipynb">03_press_corrections_vs_approvals.ipynb</a></p>
   </div>
@@ -414,7 +472,7 @@ a.case:hover { transform: translateY(-2px); }
     <div class="big num" style="color: var(--sky)">360 → 126</div>
     <div style="color: var(--muted)">questions to the owner in 12 weeks</div>
     <p class="lede read">Built on the SEO agent's real decision log: 7 of 10 documents were done alone, while 3 of 5 staging changes and 2 of 3 production changes waited for the owner. Letting only reversible changes run alone cuts the questions. A correction learned on one site travels to all of them, with one question about its scope, so repeated rules fall from 70 to 6 to 0. Treating every correction as global would wrongly block about 21 changes.</p>
-    <span class="pill">Interactive charts for this case are being built</span>
+    <div class="figs" data-case="04"></div>
     <div class="pager"><a href="#case-03"><span>Previous</span>03 · Press</a><a href="#cases"><span>Back</span>All cases</a><a class="next" href="#case-05"><span>Next</span>05 · Vending</a></div>
     <p class="note" style="margin-top:18px">Code and full notebook: <a href="https://github.com/antoniosg2025-stack/applied-ai-research-portfolio/blob/main/notebooks/04_seo_reversibility_rule_transfer.ipynb">04_seo_reversibility_rule_transfer.ipynb</a></p>
   </div>
@@ -427,7 +485,7 @@ a.case:hover { transform: translateY(-2px); }
     <div class="big num" style="color: var(--teal)">$83 → $155</div>
     <div style="color: var(--muted)">weekly margin after travel</div>
     <p class="lede read">Restocking vending machines looks like a forecasting problem. The textbook plan ignored the owner's time and driving distance. His own rules include them and nearly double the weekly margin after travel. Learning each correction once takes 12 corrections instead of 150. One rule alone, skipping the clinic on low-sales weeks, adds $47 a week and saves about $77 in driving.</p>
-    <span class="pill">Interactive charts for this case are being built</span>
+    <div class="figs" data-case="05"></div>
     <div class="pager"><a href="#case-04"><span>Previous</span>04 · SEO</a><a href="#cases"><span>Back</span>All cases</a><a class="next" href="#case-06"><span>Next</span>06 · GrabGo</a></div>
     <p class="note" style="margin-top:18px">Code and full notebook: <a href="https://github.com/antoniosg2025-stack/applied-ai-research-portfolio/blob/main/notebooks/05_vending_owner_rules_restock.ipynb">05_vending_owner_rules_restock.ipynb</a></p>
   </div>
@@ -440,7 +498,7 @@ a.case:hover { transform: translateY(-2px); }
     <div class="big num" style="color: var(--gold)">−90%</div>
     <div style="color: var(--muted)">money lost to recognition errors</div>
     <p class="lede read">GrabGo turns any space into a store that charges from images: the shelf camera, or a photo the customer sends by WhatsApp. Giving look-alike products the same price cuts the money lost to recognition errors by about 90% with no new hardware. Photo-only checkout misses about $160 per 1,000 carts. The owner's privacy and cost weights choose a different setup per location: photo-only at the dealership and the hotel, camera plus photo at a 200-person factory.</p>
-    <span class="pill">Interactive charts for this case are being built</span>
+    <div class="figs" data-case="06"></div>
     <div class="pager"><a href="#case-05"><span>Previous</span>05 · Vending</a><a href="#cases"><span>Back</span>All cases</a><a class="next" href="#case-07"><span>Next</span>07 · Suppliers</a></div>
     <p class="note" style="margin-top:18px">Code and full notebook: <a href="https://github.com/antoniosg2025-stack/applied-ai-research-portfolio/blob/main/notebooks/06_grabgo_images_owner_tradeoffs.ipynb">06_grabgo_images_owner_tradeoffs.ipynb</a></p>
   </div>
@@ -453,7 +511,7 @@ a.case:hover { transform: translateY(-2px); }
     <div class="big num" style="color: var(--coral)">15% → 2.5%</div>
     <div style="color: var(--muted)">of lots where the agent and the owner disagree</div>
     <p class="lede read">Samples and orders from China are inspected by a person with a phone: photos, videos and the weight of each box. Photos alone miss swapped components, and about 13 lots a year would ship. A scale catches them on the first lot. One fixed tolerance rejects about 7 good lots a year; the owner's tolerance learned per product cuts disagreement to 2.5%, with about 6 questions to him a year.</p>
-    <span class="pill">Interactive charts for this case are being built</span>
+    <div class="figs" data-case="07"></div>
     <div class="pager"><a href="#case-06"><span>Previous</span>06 · GrabGo</a><a href="#cases"><span>Back</span>All cases</a><a class="next" href="#top"><span>Back</span>To the top</a></div>
     <p class="note" style="margin-top:18px">Code and full notebook: <a href="https://github.com/antoniosg2025-stack/applied-ai-research-portfolio/blob/main/notebooks/07_suppliers_phone_inspection_weight.ipynb">07_suppliers_phone_inspection_weight.ipynb</a></p>
   </div>
@@ -466,6 +524,7 @@ a.case:hover { transform: translateY(-2px); }
 
 <script>
 const D = __DATA__;
+const F = __FIGS__;
 const C = { navy:"#0F1E33", ink:"#1B2A41", muted:"#5E6B7E", line:"#E3E8EF", teal:"#0F7C80", gold:"#E0A526", coral:"#D9534F", sky:"#5BA4CF", grey:"#9AA6B6" };
 const NAMES = { "fixed rules":"Fixed rules", "one profile":"One profile", "profile per type":"Profile per type", "per type + forgetting":"Per type + forgetting" };
 const COLORS = { "fixed rules":C.grey, "one profile":C.sky, "profile per type":C.gold, "per type + forgetting":C.teal };
@@ -552,6 +611,100 @@ tau.addEventListener("input", update); update();
     annotations:[{ x:62, y:1, yref:"paper", xanchor:"left", yanchor:"top", text:"specifier answers half", showarrow:false, font:{ color:"#8A6410", size:13 } }] }), cfg);
 })();
 
+
+// ---------- Case 02-07 charts, drawn from the notebooks' own figures ----------
+function catLabel(ticks, x){ let best=null, bd=1e9; for(const [v,l] of ticks){ const d=Math.abs(v-x); if(d<bd){bd=d;best=l;} } return bd<0.51 ? best.replace(/\n/g," ") : String(x); }
+function renderFig(el, f){
+  const traces=[]; const ticks=f.xticks||[]; const numericX = ticks.every(([v,l])=>!isNaN(parseFloat(l)));
+  const anyStack = f.bars.some(b=>b.b.some(v=>Math.abs(v)>1e-9));
+  f.bars.forEach((b,i)=>{
+    const x = b.x.map(v=> numericX ? v : catLabel(ticks, v));
+    traces.push({ type:"bar", name:b.label||"", showlegend:!!b.label, x, y:b.h, marker:{ color:b.color.length>1 && !b.label ? b.color : b.color[0] },
+      text: b.h.map(v=> Math.abs(v)>=1000 ? Math.round(v).toLocaleString() : (Math.abs(v)<10 ? (+v.toFixed(1)).toString() : Math.round(v).toString())),
+      textposition: anyStack ? "inside" : "outside", cliponaxis:false, textfont:{ family:"IBM Plex Mono, monospace", size: small()?11:12 },
+      hovertemplate:(b.label?b.label+": ":"")+"%{y:,.1f}<extra>%{x}</extra>" });
+  });
+  const ytick=f.yticks||[];
+  f.hbars.forEach(b=>{
+    const y=b.y.map(v=>catLabel(ytick, v));
+    traces.push({ type:"bar", orientation:"h", name:b.label||"", showlegend:!!b.label, y, x:b.w, base:b.l, marker:{ color:b.color[0] },
+      hovertemplate:(b.label?b.label+": ":"")+"%{x}<extra>%{y}</extra>" });
+  });
+  f.lines.forEach(l=>{
+    traces.push({ type:"scatter", mode:"lines+markers", name:l.label, showlegend:!!l.label, x:l.x, y:l.y, line:{ color:l.color, width:3, dash:l.dash?"dash":"solid" }, marker:{ size:7, color:l.color },
+      hovertemplate:(l.label||"")+": %{y:,.1f}<extra></extra>" });
+  });
+  if(f.y2){ f.y2.lines.forEach(l=> traces.push({ type:"scatter", mode:"lines+markers", name:l.label, x:l.x, y:l.y, yaxis:"y2", line:{ color:l.color, width:3 }, marker:{ size:6, color:l.color }, hovertemplate:(l.label||"")+": %{y:,.0f}<extra></extra>" })); }
+  const lay = base({ hovermode:"closest", barmode: anyStack || f.hbars.length>1 ? "stack" : "group",
+    xaxis:{ title:{ text:f.xlabel||"" }, type: f.xlog ? "log" : (numericX ? "linear" : "category"), gridcolor:C.line, fixedrange:true, automargin:true, tickangle: small() && !numericX ? -30 : 0 },
+    yaxis:{ title:{ text: (f.ylabel||"").replace(/\n/g," ") }, type: f.ylog ? "log":"linear", gridcolor:C.line, fixedrange:true, automargin:true, rangemode:"tozero" },
+    margin:{ l:12, r: f.y2?12:14, t:16, b:12 }, legend:{ orientation:"h", y:-0.3, x:0 } });
+  if(f.xlog && ticks.length){ lay.xaxis.tickvals=ticks.map(t=>t[0]); lay.xaxis.ticktext=ticks.map(t=>t[1]); }
+  if(f.hbars.length){ lay.yaxis = { type:"category", autorange:"reversed", fixedrange:true, automargin:true }; lay.xaxis.type="linear"; lay.xaxis.title={text:f.xlabel||""}; }
+  if(f.y2){ lay.yaxis2 = { title:{ text:f.y2.ylabel||"" }, overlaying:"y", side:"right", showgrid:false, fixedrange:true, automargin:true, rangemode:"tozero" }; }
+  Plotly.newPlot(el, traces, lay, cfg);
+}
+document.querySelectorAll(".figs").forEach(box=>{
+  (F[box.dataset.case]||[]).forEach((f,i)=>{
+    const p=document.createElement("div"); p.className="panel";
+    const h=document.createElement("h3"); h.textContent=f.title; p.appendChild(h);
+    const c=document.createElement("div"); c.className="chart"; c.id="fig-"+box.dataset.case+"-"+i; p.appendChild(c);
+    box.appendChild(p); renderFig(c, f);
+  });
+});
+
+// ---------- What if the agents never stopped ----------
+const LEVELS=[{asks:100, errors:0, label:"today: every decision waits"}].concat(
+  per.slice().reverse().map(s=>({asks:s.asks, errors:s.errors, tau:s.tau})));
+const BIZ=[
+  { key:"press", name:"Press", unit:"videos and posts a week", now:19, src:"My content plan: 18 GrabGo + 1 Equilibra a week", real:true },
+  { key:"seo", name:"SEO", unit:"site changes a week", now:24, src:"Real log: 24 changes in the first week", real:true },
+  { key:"equilibra", name:"Equilibra", unit:"market theses tested a week", now:3, src:"assumption", real:false },
+  { key:"grabgo", name:"GrabGo", unit:"new locations contacted a week", now:10, src:"assumption", real:false },
+  { key:"vending", name:"Vending", unit:"product-mix tests a week", now:1, src:"assumption", real:false },
+  { key:"suppliers", name:"Suppliers", unit:"products evaluated a week", now:5, src:"assumption", real:false }
+];
+let selBiz="seo";
+const askq=document.getElementById("askq"), bizBox=document.getElementById("biz");
+BIZ.forEach(b=>{
+  const el=document.createElement("div"); el.className="b"; el.dataset.key=b.key; el.tabIndex=0; el.setAttribute("role","button");
+  el.innerHTML=`<span class="nm">${b.name}</span><span class="u">${b.unit}</span>
+    <div class="row"><span class="agent num" data-v>0</span><span class="x" data-x></span></div>
+    <span class="now"><label for="now-${b.key}">Today:</label> <input id="now-${b.key}" type="number" min="0" step="1" value="${b.now}"></span>
+    <span class="err" data-e></span><span class="src ${b.real?"":"as"}">${b.src}</span>`;
+  el.addEventListener("click",e=>{ if(e.target.tagName==="INPUT") return; selBiz=b.key; refresh(); });
+  el.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); selBiz=b.key; refresh(); } });
+  el.querySelector("input").addEventListener("input",e=>{ b.now=Math.max(0, +e.target.value||0); refresh(); });
+  bizBox.appendChild(el);
+});
+Plotly.newPlot("wchart", [], base({ font:{ family:"IBM Plex Sans, sans-serif", size: small()?12:13, color:"#C9D5E4" } }), cfg);
+function fmt(v){ return v>=100 ? Math.round(v).toLocaleString() : (v>=10 ? Math.round(v).toString() : (+v.toFixed(1)).toString()); }
+function refresh(){
+  const L=LEVELS[+askq.value]; const m=100/L.asks;
+  document.getElementById("askOut").textContent=Math.round(L.asks)+"%";
+  document.getElementById("askNote").innerHTML = L.asks===100 ? "Today: every decision waits for me. Output is what I can approve myself." :
+    `At this setting the agent acts alone when it is at least ${Math.round(L.tau*100)}% sure. Measured in case 01: it asks ${Math.round(L.asks)} times and makes ${L.errors.toFixed(2)} decisions per 100 that I would have made differently. Each output is multiplied by <b>${(+m.toFixed(1))}×</b>.`;
+  bizBox.querySelectorAll(".b").forEach(el=>{
+    const b=BIZ.find(x=>x.key===el.dataset.key); const out=b.now*m;
+    el.classList.toggle("sel", b.key===selBiz);
+    el.querySelector("[data-v]").textContent=fmt(out);
+    el.querySelector("[data-x]").textContent = L.asks===100 ? "" : "×"+(+m.toFixed(1));
+    el.querySelector("[data-e]").textContent = L.asks===100 ? "No agent mistakes: nothing moves without me." : `≈ ${fmt(out*L.errors/100*12)} decisions in 12 weeks I would have made differently`;
+  });
+  const b=BIZ.find(x=>x.key===selBiz); const wk=[...Array(13).keys()];
+  Plotly.react("wchart", [
+    { type:"scatter", mode:"lines", name:"Every decision waits for me", x:wk, y:wk.map(w=>w*b.now), line:{ color:"#7F93AD", width:3, dash:"dot" }, hovertemplate:"%{y:,.0f}<extra>week %{x}</extra>" },
+    { type:"scatter", mode:"lines", name:"Agent decides like me", x:wk, y:wk.map(w=>w*b.now*m), line:{ color:C.gold, width:4 }, fill:"tonexty", fillcolor:"rgba(224,165,38,.14)", hovertemplate:"%{y:,.0f}<extra>week %{x}</extra>" }
+  ], base({ font:{ family:"IBM Plex Sans, sans-serif", size: small()?12:13, color:"#C9D5E4" }, hovermode:"x unified",
+    margin:{ l:12, r:14, t:30, b:12 },
+    title:{ text: b.name+": "+b.unit.replace(" a week","")+" over 12 weeks", font:{ size:15, color:"#fff", family:"Bricolage Grotesque, sans-serif" }, x:0.01, y:0.98 },
+    xaxis:{ title:{ text:"Week" }, gridcolor:"#22395A", zeroline:false, fixedrange:true, automargin:true, dtick:2 },
+    yaxis:{ title:{ text:"Cumulative" }, gridcolor:"#22395A", zeroline:false, fixedrange:true, automargin:true, rangemode:"tozero" },
+    legend:{ orientation:"h", y:-0.28, x:0, font:{ color:"#C9D5E4" } } }), cfg);
+  document.getElementById("wchartNote").textContent = "Tap any business above to see its 12 weeks. "+ (b.real ? "Today's figure is real." : "Today's figure is an assumption: type your real number in its box.");
+}
+askq.addEventListener("input", refresh); refresh();
+
 // Navigation: jumps that work inside the viewer frame, plus the active chip
 function go(id){ const el=document.getElementById(id); if(!el) return;
   el.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth", block:"start"});
@@ -559,7 +712,7 @@ function go(id){ const el=document.getElementById(id); if(!el) return;
 document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener("click",e=>{ e.preventDefault(); go(a.getAttribute("href").slice(1)); }));
 document.getElementById("totop").addEventListener("click",()=>go("cases"));
 const chipBox=document.getElementById("chips"), chips=[...chipBox.querySelectorAll(".chip")];
-const watched=["cases","case-01","case-02","case-03","case-04","case-05","case-06","case-07"].map(id=>document.getElementById(id));
+const watched=["cases","what-if","case-01","case-02","case-03","case-04","case-05","case-06","case-07"].map(id=>document.getElementById(id));
 let lastCur=null;
 function mark(){ let cur=null; for(const s of watched){ if(s.getBoundingClientRect().top<120) cur=s.id; }
   if(cur===lastCur) return; lastCur=cur;
