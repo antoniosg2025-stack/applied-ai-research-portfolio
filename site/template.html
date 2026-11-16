@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teaching AI Agents to Decide Like Their Owner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>
+:root {
+  /* Layout idea: a dark research-lab cover with the decision loop, then a light reading column where every case opens with its one number and an interactive chart. */
+  --navy: #0F1E33;
+  --ink: #1B2A41;
+  --paper: #F4F6F9;
+  --card: #FFFFFF;
+  --line: #DCE2EA;
+  --muted: #5E6B7E;
+  --teal: #0F7C80;
+  --gold: #E0A526;
+  --coral: #D9534F;
+  --sky: #5BA4CF;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.6; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; line-height: 1.12; margin: 0; }
+a { color: var(--teal); }
+a:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
+.read { max-width: 68ch; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+/* Cover */
+.cover { background: radial-gradient(1200px 500px at 85% -10%, #1C3A5A 0%, transparent 60%), var(--navy); color: #E8EEF6; padding: 56px 0 48px; }
+.cover .grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: 40px; align-items: center; }
+.eyebrow { font-family: var(--mono); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--gold); margin: 0 0 18px; }
+.cover h1 { font-size: clamp(38px, 5.4vw, 64px); font-weight: 800; letter-spacing: -.02em; color: #fff; }
+.question { margin: 22px 0 0; font-size: 20px; line-height: 1.5; color: #C9D5E4; max-width: 34ch; }
+.question b { color: #fff; font-weight: 600; }
+.byline { margin-top: 26px; font-size: 14px; color: #9DB0C7; }
+.byline strong { color: #E8EEF6; font-weight: 600; }
+.loop { width: 100%; height: auto; display: block; }
+.loop text { font-family: var(--body); }
+.metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 34px; }
+.metric { border: 1px solid #2A4363; border-radius: 12px; padding: 14px 16px; background: rgba(255,255,255,.03); }
+.metric .k { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--gold); }
+.metric p { margin: 4px 0 0; font-size: 15px; color: #DCE5F0; line-height: 1.45; }
+
+/* Case grid */
+section { padding: 56px 0; }
+.sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }
+.sec-head h2 { font-size: clamp(26px, 3.4vw, 36px); }
+.sec-head p { margin: 0; color: var(--muted); font-size: 15px; }
+.cases { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.case { position: relative; display: flex; flex-direction: column; gap: 8px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px 18px 16px; text-decoration: none; color: inherit; transition: transform .15s ease, box-shadow .15s ease; }
+.case::before { content: ""; position: absolute; left: 0; top: 18px; bottom: 18px; width: 4px; border-radius: 0 4px 4px 0; background: var(--accent, var(--teal)); }
+.case .tag { font-family: var(--mono); font-size: 12px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+.case .big { font-family: var(--display); font-weight: 800; font-size: 34px; letter-spacing: -.02em; color: var(--accent, var(--teal)); line-height: 1.05; }
+.case .line { font-size: 14.5px; line-height: 1.45; color: var(--ink); margin: 0; }
+.case .state { margin-top: auto; padding-top: 6px; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+a.case.live { border-color: var(--teal); box-shadow: 0 6px 20px rgba(15,124,128,.12); }
+a.case.live .state { color: var(--teal); }
+a.case.live:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(15,124,128,.18); }
+
+/* Case 01 */
+.case-hero { background: var(--card); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.case-hero .tag { font-family: var(--mono); font-size: 13px; color: var(--teal); letter-spacing: .08em; text-transform: uppercase; margin: 0 0 10px; }
+.case-hero h2 { font-size: clamp(30px, 4vw, 46px); letter-spacing: -.015em; }
+.lede { font-size: 19px; color: #33445C; margin: 18px 0 0; }
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 30px; }
+.tile { border: 1px solid var(--line); border-radius: 14px; padding: 18px; background: var(--paper); }
+.tile.best { background: #E9F4F4; border-color: #9CCBCC; }
+.tile .who { font-size: 14px; font-weight: 600; }
+.tile .val { font-family: var(--display); font-weight: 800; font-size: 44px; line-height: 1; margin-top: 10px; letter-spacing: -.02em; }
+.tile .unit { font-size: 13px; color: var(--muted); }
+.tile .asks { margin-top: 10px; font-size: 14px; color: #33445C; }
+.tile .asks b { font-family: var(--mono); }
+.block { margin-top: 44px; }
+.block h3 { font-size: 24px; margin-bottom: 8px; }
+.block .read p { margin: 0 0 10px; }
+.panel { margin-top: 16px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px 14px 8px; }
+.chart { width: 100%; height: 360px; }
+.note { font-size: 13px; color: var(--muted); margin: 6px 6px 8px; }
+
+.control { display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; align-items: center; padding: 4px 6px 14px; }
+.control label { font-weight: 600; font-size: 15px; }
+.control output { font-family: var(--mono); font-weight: 600; font-size: 20px; color: var(--teal); }
+.control input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: var(--teal); height: 28px; }
+.readout { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 6px 12px; }
+.ro { border-radius: 12px; padding: 12px 14px; border: 1px solid var(--line); }
+.ro .who { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.ro .dot { width: 10px; height: 10px; border-radius: 50%; }
+.ro .vals { margin-top: 6px; font-size: 14px; color: #33445C; }
+.ro .vals b { font-family: var(--mono); font-size: 18px; color: var(--ink); }
+
+.finding { margin-top: 18px; display: grid; grid-template-columns: 56px 1fr; gap: 14px; align-items: start; background: var(--navy); color: #E3EAF3; border-radius: 16px; padding: 20px; }
+.finding .n { font-family: var(--display); font-weight: 800; font-size: 34px; color: var(--gold); line-height: 1; }
+.finding p { margin: 0; font-size: 16.5px; line-height: 1.55; }
+.finding b { color: #fff; }
+
+details { margin-top: 16px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 4px 18px; }
+summary { cursor: pointer; font-weight: 600; padding: 12px 0; }
+details p, details li { font-size: 15.5px; }
+details ol { padding-left: 20px; }
+.formula { font-family: var(--mono); background: var(--paper); border-radius: 8px; padding: 10px 12px; display: block; overflow-x: auto; }
+
+footer { background: var(--navy); color: #9DB0C7; padding: 32px 0; font-size: 14px; }
+footer a { color: #E8EEF6; }
+
+@media (max-width: 860px) {
+  .cover { padding: 40px 0 36px; }
+  .cover .grid { grid-template-columns: 1fr; gap: 28px; }
+  .tiles { grid-template-columns: 1fr; }
+  .chart { height: 320px; }
+}
+@media (max-width: 480px) {
+  body { font-size: 16px; }
+  .metrics, .readout { grid-template-columns: 1fr; }
+  .finding { grid-template-columns: 1fr; gap: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .case { transition: none; }
+  .moving { display: none; }
+}
+</style>
+</head>
+<body>
+
+<header class="cover">
+  <div class="wrap grid">
+    <div>
+      <p class="eyebrow">Applied AI research portfolio · 7 cases</p>
+      <h1>Teaching AI agents to decide like their owner</h1>
+      <p class="question">How can an AI agent <b>learn its owner's way of deciding</b> from approvals and corrections, and <b>know when to ask</b>?</p>
+      <p class="byline"><strong>Juan Antonio Sainz Gálvez</strong> · Applied AI &amp; Machine Learning, Conestoga College · B.Eng. Computer Engineering, Tecnológico de Monterrey</p>
+      <div class="metrics">
+        <div class="metric"><span class="k">Error</span><p>The agent decided differently from how the owner would have decided.</p></div>
+        <div class="metric"><span class="k">Questions</span><p>How many times the agent had to stop and ask the owner.</p></div>
+      </div>
+    </div>
+    <svg class="loop" viewBox="0 0 560 430" role="img" aria-labelledby="loopTitle">
+      <title id="loopTitle">The decision loop: the owner's situation shapes his profile, the agent predicts his decision, acts when confident and asks when not, and every answer or correction updates the profile.</title>
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7F93AD"/></marker>
+        <marker id="ahg" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#E0A526"/></marker>
+      </defs>
+      <!-- owner -->
+      <rect x="20" y="20" width="250" height="150" rx="16" fill="#16304D" stroke="#2F5279"/>
+      <text x="40" y="52" fill="#E0A526" font-size="13" font-weight="600" letter-spacing="1.2">OWNER'S SITUATION</text>
+      <text x="40" y="82" fill="#E8EEF6" font-size="15">Cash · time · skills</text>
+      <text x="40" y="106" fill="#E8EEF6" font-size="15">Family · business · reputation</text>
+      <text x="40" y="140" fill="#9DB0C7" font-size="13">Limits and strengths</text>
+      <!-- profile -->
+      <rect x="310" y="20" width="230" height="150" rx="16" fill="#0F7C80"/>
+      <text x="330" y="52" fill="#CFEDEE" font-size="13" font-weight="600" letter-spacing="1.2">DECISION PROFILE</text>
+      <text x="330" y="84" fill="#fff" font-size="17" font-weight="600">One model per</text>
+      <text x="330" y="108" fill="#fff" font-size="17" font-weight="600">type of decision</text>
+      <text x="330" y="140" fill="#CFEDEE" font-size="13">P(owner approves | context)</text>
+      <path id="p1" d="M270 95 H306" stroke="#7F93AD" stroke-width="2" marker-end="url(#ah)" fill="none"/>
+      <!-- decision -->
+      <path id="p2" d="M425 170 V214" stroke="#7F93AD" stroke-width="2" marker-end="url(#ah)" fill="none"/>
+      <polygon points="425,218 505,268 425,318 345,268" fill="#1B2A41" stroke="#E0A526" stroke-width="2"/>
+      <text x="425" y="264" fill="#fff" font-size="15" font-weight="600" text-anchor="middle">Confident</text>
+      <text x="425" y="284" fill="#fff" font-size="15" font-weight="600" text-anchor="middle">enough?</text>
+      <!-- act -->
+      <path id="p3" d="M425 318 V352" stroke="#7F93AD" stroke-width="2" marker-end="url(#ah)" fill="none"/>
+      <rect x="350" y="356" width="150" height="54" rx="12" fill="#E8EEF6"/>
+      <text x="425" y="389" fill="#0F1E33" font-size="16" font-weight="700" text-anchor="middle">ACT</text>
+      <text x="476" y="342" fill="#9DB0C7" font-size="13">yes</text>
+      <!-- ask -->
+      <path id="p4" d="M345 268 H262" stroke="#7F93AD" stroke-width="2" marker-end="url(#ah)" fill="none"/>
+      <text x="285" y="258" fill="#9DB0C7" font-size="13">no</text>
+      <rect x="60" y="240" width="198" height="56" rx="12" fill="#D9534F"/>
+      <text x="159" y="274" fill="#fff" font-size="16" font-weight="700" text-anchor="middle">ASK THE OWNER</text>
+      <!-- learning arcs -->
+      <path id="p5" d="M159 240 C159 205 240 200 330 172" stroke="#E0A526" stroke-width="2" stroke-dasharray="5 5" marker-end="url(#ahg)" fill="none"/>
+      <text x="60" y="222" fill="#E0A526" font-size="13">answer = new label</text>
+      <path id="p6" d="M350 383 C 120 383 40 360 40 300 C 40 230 220 210 318 172" stroke="#E0A526" stroke-width="2" stroke-dasharray="5 5" marker-end="url(#ahg)" fill="none" opacity=".55"/>
+      <text x="60" y="350" fill="#E0A526" font-size="13" opacity=".85">owner's correction, if it was wrong</text>
+      <!-- moving decisions -->
+      <g class="moving">
+        <circle r="6" fill="#fff"><animateMotion dur="3.2s" repeatCount="indefinite"><mpath href="#p2"/></animateMotion></circle>
+        <circle r="6" fill="#fff"><animateMotion dur="3.2s" repeatCount="indefinite" begin="0.6s"><mpath href="#p3"/></animateMotion></circle>
+        <circle r="6" fill="#fff"><animateMotion dur="3.2s" repeatCount="indefinite" begin="1.4s"><mpath href="#p4"/></animateMotion></circle>
+        <circle r="5" fill="#E0A526"><animateMotion dur="3.6s" repeatCount="indefinite" begin="2s"><mpath href="#p5"/></animateMotion></circle>
+      </g>
+    </svg>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>Seven businesses, one question</h2>
+      <p>Each case is a real operation I run. Each has one main finding.</p>
+    </div>
+    <div class="cases">
+      <a class="case live" href="#case-01" style="--accent: var(--teal)">
+        <span class="tag">01 · Agents</span>
+        <span class="big">3× fewer</span>
+        <p class="line">errors with one profile per type of decision, while asking the owner half as often.</p>
+        <span class="state">Open the interactive case ↓</span>
+      </a>
+      <div class="case" style="--accent: var(--gold)">
+        <span class="tag">02 · Equilibra</span>
+        <span class="big">$8,800</span>
+        <p class="line">misplaced per user by copying the owner's moves. Learning his rule with 13 questions fixes it.</p>
+        <span class="state">Interactive version next</span>
+      </div>
+      <div class="case" style="--accent: var(--coral)">
+        <span class="tag">03 · Press</span>
+        <span class="big">4× faster</span>
+        <p class="line">learning from a correction with a reason than from yes/no approvals.</p>
+        <span class="state">Interactive version next</span>
+      </div>
+      <div class="case" style="--accent: var(--sky)">
+        <span class="tag">04 · SEO</span>
+        <span class="big">360 → 126</span>
+        <p class="line">questions to the owner in 12 weeks when only reversible changes run alone.</p>
+        <span class="state">Interactive version next</span>
+      </div>
+      <div class="case" style="--accent: var(--teal)">
+        <span class="tag">05 · Vending</span>
+        <span class="big">$83 → $155</span>
+        <p class="line">weekly margin after travel, because the owner's rules count his time and driving.</p>
+        <span class="state">Interactive version next</span>
+      </div>
+      <div class="case" style="--accent: var(--gold)">
+        <span class="tag">06 · GrabGo</span>
+        <span class="big">−90%</span>
+        <p class="line">money lost to image-recognition errors when look-alike products share a price.</p>
+        <span class="state">Interactive version next</span>
+      </div>
+      <div class="case" style="--accent: var(--coral)">
+        <span class="tag">07 · Suppliers</span>
+        <span class="big">15% → 2.5%</span>
+        <p class="line">of lots where agent and owner disagree, once his tolerance is learned per product.</p>
+        <span class="state">Interactive version next</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="case-hero" id="case-01">
+  <div class="wrap">
+    <p class="tag">Case 01 · Agents · the framework</p>
+    <h2>One owner, many types of decision, and a specifier in between</h2>
+    <p class="lede read">My businesses run on LLM agents and a few people. When I gave the agent rules, it followed them with me. When another person used the system, some rules held and others broke. The real object was never the rules. It is <b>how I decide</b>, which depends on my situation and changes with the type of decision.</p>
+
+    <div class="tiles">
+      <div class="tile">
+        <div class="who">Fixed rules I wrote once</div>
+        <div class="val num" style="color: var(--muted)">24.5</div>
+        <div class="unit">errors per 100 decisions</div>
+        <div class="asks">Never asks: <b>0</b> questions</div>
+      </div>
+      <div class="tile">
+        <div class="who">One learned profile for everything</div>
+        <div class="val num" style="color: var(--sky)">1.1</div>
+        <div class="unit">errors per 100 decisions</div>
+        <div class="asks">Asks <b>57</b> times per 100</div>
+      </div>
+      <div class="tile best">
+        <div class="who">One profile per type of decision</div>
+        <div class="val num" style="color: var(--teal)">0.3</div>
+        <div class="unit">errors per 100 decisions</div>
+        <div class="asks">Asks <b>27</b> times per 100</div>
+      </div>
+    </div>
+    <p class="note">5 simulation runs × 120 days × 40 decisions a day. The agent asks when its confidence is below 85%.</p>
+
+    <div class="block">
+      <h3>The same owner weighs the same facts differently</h3>
+      <div class="read"><p>Each row is a type of decision. Each column is a fact about it. Cash is tight, so the amount weighs heavily against spending. Reputation matters, so brand risk weighs against publishing and writing to clients. Production changes must be reversible. A single profile averages these rows and gets every one of them a little wrong.</p></div>
+      <div class="panel"><div id="heat" class="chart"></div><p class="note">Weight in the owner's decision: blue pushes toward approve, red toward reject.</p></div>
+    </div>
+
+    <div class="block">
+      <h3>Try it: how sure should the agent be before acting?</h3>
+      <div class="read"><p>Move the control. A stricter agent makes fewer errors but asks you more. At every setting, one profile per type gets both numbers lower.</p></div>
+      <div class="panel">
+        <div class="control">
+          <label for="tau">Confidence needed to act alone</label>
+          <output id="tauOut" for="tau">85%</output>
+          <input id="tau" type="range" min="0" max="8" step="1" value="6" aria-describedby="tauHelp">
+        </div>
+        <div class="readout">
+          <div class="ro" style="background:#EEF5FB"><div class="who"><span class="dot" style="background: var(--sky)"></span>One profile</div><div class="vals"><b id="r1e">1.10</b> errors · <b id="r1a">56</b> questions per 100</div></div>
+          <div class="ro" style="background:#E9F4F4"><div class="who"><span class="dot" style="background: var(--teal)"></span>Profile per type</div><div class="vals"><b id="r2e">0.24</b> errors · <b id="r2a">27</b> questions per 100</div></div>
+        </div>
+        <div id="sweep" class="chart"></div>
+        <p class="note" id="tauHelp">Each point is one confidence setting, 3 simulation runs each. Lower and further left is better. The error axis is logarithmic.</p>
+      </div>
+    </div>
+
+    <div class="block">
+      <h3>When the owner's life changes, the agent has to follow</h3>
+      <div class="read"><p>On day 60 the owner pays off his debts, and spending stops being so sensitive to the amount. Agents that learned the old owner start asking again. The one that forgets old decisions faster keeps its errors lowest, and pays for it in questions.</p></div>
+      <div class="panel"><div id="asks" class="chart"></div><p class="note">Questions to the owner per day, out of 40 decisions. 7-day average.</p></div>
+    </div>
+
+    <div class="block">
+      <h3>A specifier answers for the owner. Whose profile does the agent learn?</h3>
+      <div class="read"><p>From day 60, a specifier answers half of the requests. Her situation is different: more relaxed about money and brand risk. If the agent learns from whoever approves, it slowly becomes her. If her answer is kept as a comment, and the owner is asked only when they disagree, it stays the owner's agent.</p></div>
+      <div class="panel"><div id="spec" class="chart"></div><p class="note">Decisions different from the owner's, per 100. 7-day average, 5 runs.</p></div>
+    </div>
+
+    <div class="block">
+      <h3>Findings</h3>
+      <div class="finding"><span class="n">1</span><p><b>One profile per type of decision</b> makes about a third of the errors of a single profile (0.3 vs 1.1 per 100) and asks <b>half as often</b> (27 vs 57 per 100). The single profile fails where the owner's situation weighs most: spending and deploying.</p></div>
+      <div class="finding"><span class="n">2</span><p>An owner who changes has a price. The agent that <b>forgets old decisions</b> keeps errors lowest after the change (0.1 per 100) but asks more (36 vs 27 per 100).</p></div>
+      <div class="finding"><span class="n">3</span><p>If the agent learns from whoever approves, the specifier's profile <b>silently replaces the owner's</b>: 8.5 vs 1.1 wrong decisions per 100. The rules were never lost. <b>The source of the labels changed.</b></p></div>
+    </div>
+
+    <details>
+      <summary>Method, assumptions and limits</summary>
+      <p>Each decision has a type <i>k</i> (sell, spend, publish, client message, deploy) and a context <b>x</b>: amount, reversibility, novelty, brand risk, urgency and quality of evidence. The owner approves when</p>
+      <code class="formula">owner(x, k) = 1[ w<sub>k</sub> · x + b<sub>k</sub> + ε > 0 ],  ε ~ N(0, 0.35)</code>
+      <p>where w<sub>k</sub>, b<sub>k</sub> is his hidden profile for that type and ε is his own inconsistency. The agent fits logistic models online, refits every day, acts when max(p, 1 − p) is above the threshold, and asks otherwise. Every answer, and every later correction of a wrong action, becomes a training label. Forgetting uses a 15-day half-life on sample weights.</p>
+      <p><b>Limits:</b> a linear owner, synthetic decisions, a fixed threshold for asking (a learned rejector is the next step), and an owner who is always available to answer.</p>
+    </details>
+    <details>
+      <summary>References</summary>
+      <ol>
+        <li>Hadfield-Menell, Dragan, Abbeel &amp; Russell (2016). Cooperative Inverse Reinforcement Learning. NeurIPS.</li>
+        <li>Poddar, Wan, Ivison, Gupta &amp; Jaques (2024). Personalizing RLHF with Variational Preference Learning. NeurIPS.</li>
+        <li>Kirk et al. (2024). The PRISM Alignment Dataset. NeurIPS Datasets and Benchmarks.</li>
+        <li>Park et al. (2024). Generative Agent Simulations of 1,000 People. arXiv:2411.10109.</li>
+        <li>Mozannar &amp; Sontag (2020). Consistent Estimators for Learning to Defer to an Expert. ICML.</li>
+        <li>Madras, Pitassi &amp; Zemel (2018). Predict Responsibly: Learning to Defer. NeurIPS.</li>
+        <li>Simon (1955). A behavioral model of rational choice. Quarterly Journal of Economics.</li>
+        <li>Mullainathan &amp; Shafir (2013). Scarcity: Why Having Too Little Means So Much.</li>
+        <li>Gama et al. (2014). A survey on concept drift adaptation. ACM Computing Surveys.</li>
+      </ol>
+    </details>
+    <p class="note" style="margin-top:18px">Code and full notebook: <a href="https://github.com/antoniosg2025-stack/applied-ai-research-portfolio/blob/main/notebooks/01_owner_decision_profile.ipynb">01_owner_decision_profile.ipynb</a></p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">Juan Antonio Sainz Gálvez · Applied AI research portfolio · Every number on this page comes from the notebooks in the repository.</div>
+</footer>
+
+<script>
+const D = __DATA__;
+const C = { navy:"#0F1E33", ink:"#1B2A41", muted:"#5E6B7E", line:"#E3E8EF", teal:"#0F7C80", gold:"#E0A526", coral:"#D9534F", sky:"#5BA4CF", grey:"#9AA6B6" };
+const NAMES = { "fixed rules":"Fixed rules", "one profile":"One profile", "profile per type":"Profile per type", "per type + forgetting":"Per type + forgetting" };
+const COLORS = { "fixed rules":C.grey, "one profile":C.sky, "profile per type":C.gold, "per type + forgetting":C.teal };
+const small = () => window.innerWidth < 560;
+const cfg = { displayModeBar:false, responsive:true, scrollZoom:false };
+function base(extra) {
+  return Object.assign({
+    font:{ family:"IBM Plex Sans, sans-serif", size: small()?12:13, color:C.ink },
+    paper_bgcolor:"rgba(0,0,0,0)", plot_bgcolor:"rgba(0,0,0,0)",
+    margin:{ l: small()?44:56, r:14, t:10, b: small()?70:56 },
+    dragmode:false, hovermode:"x unified",
+    hoverlabel:{ font:{ family:"IBM Plex Sans, sans-serif" } },
+    legend:{ orientation:"h", y:-0.22, x:0, font:{ size: small()?11.5:13 } },
+    xaxis:{ gridcolor:C.line, zeroline:false, fixedrange:true, linecolor:C.line },
+    yaxis:{ gridcolor:C.line, zeroline:false, fixedrange:true, linecolor:C.line }
+  }, extra || {});
+}
+
+// 1. Heatmap of the owner's weights
+(function(){
+  const w = D.weights;
+  const feat = w.features.map(f => ({amount:"Amount", reversible:"Reversible", novelty:"Novelty", brand_risk:"Brand risk", urgency:"Urgency", evidence:"Evidence"})[f]);
+  const types = w.types.map(t => ({sell:"Sell", spend:"Spend", publish:"Publish", client_msg:"Client message", deploy:"Deploy"})[t]);
+  const text = w.values.map(r => r.map(v => (v>0?"+":"") + v.toFixed(1)));
+  Plotly.newPlot("heat", [{
+    type:"heatmap", z:w.values, x:feat, y:types, text:text, texttemplate:"%{text}",
+    textfont:{ family:"IBM Plex Mono, monospace", size: small()?11:14 },
+    colorscale:[[0,"#B8323A"],[0.5,"#F4F6F9"],[1,"#1F5FA8"]], zmin:-2.6, zmax:2.6, showscale:false,
+    hovertemplate:"%{y} · %{x}: %{text}<extra></extra>", xgap:3, ygap:3
+  }], base({ hovermode:"closest", margin:{ l: small()?96:118, r:10, t:10, b:40 },
+    yaxis:{ autorange:"reversed", fixedrange:true, showgrid:false }, xaxis:{ side:"bottom", fixedrange:true, showgrid:false, tickangle: small()?-35:0 } }), cfg);
+})();
+
+// 2. Confidence sweep
+const TAUS = [...new Set(D.sweep.map(s => s.tau))].sort();
+const one = TAUS.map(t => D.sweep.find(s => s.tau===t && s.agent==="one_profile"));
+const per = TAUS.map(t => D.sweep.find(s => s.tau===t && s.agent==="per_type"));
+function sweepTraces(i) {
+  const line = (arr, name, color) => ({ type:"scatter", mode:"lines+markers", name, x:arr.map(s=>s.asks), y:arr.map(s=>s.errors),
+    line:{ color, width:3 }, marker:{ size:7, color },
+    customdata:arr.map(s=>Math.round(s.tau*100)),
+    hovertemplate:name+" at %{customdata}%: %{y:.2f} errors, %{x:.0f} questions per 100<extra></extra>" });
+  const hl = (arr, color) => ({ type:"scatter", mode:"markers", showlegend:false, hoverinfo:"skip", x:[arr[i].asks], y:[arr[i].errors],
+    marker:{ size:18, color:"#fff", line:{ color, width:4 } } });
+  return [line(one, "One profile", C.sky), line(per, "Profile per type", C.teal), hl(one, C.sky), hl(per, C.teal)];
+}
+Plotly.newPlot("sweep", sweepTraces(6), base({ hovermode:"closest",
+  xaxis:{ title:{ text:"Questions to the owner per 100 decisions" }, gridcolor:C.line, zeroline:false, fixedrange:true, range:[0,78] },
+  yaxis:{ title:{ text:"Errors per 100" }, type:"log", gridcolor:C.line, fixedrange:true, tickvals:[0.1,0.2,0.5,1,2,5], ticktext:["0.1","0.2","0.5","1","2","5"] } }), cfg);
+const tau = document.getElementById("tau");
+function update() {
+  const i = +tau.value;
+  document.getElementById("tauOut").textContent = Math.round(TAUS[i]*100) + "%";
+  document.getElementById("r1e").textContent = one[i].errors.toFixed(2);
+  document.getElementById("r1a").textContent = Math.round(one[i].asks);
+  document.getElementById("r2e").textContent = per[i].errors.toFixed(2);
+  document.getElementById("r2a").textContent = Math.round(per[i].asks);
+  Plotly.restyle("sweep", { x:[[one[i].asks],[per[i].asks]], y:[[one[i].errors],[per[i].errors]] }, [2,3]);
+}
+tau.addEventListener("input", update); update();
+
+// 3. Questions per day, owner changes on day 60
+(function(){
+  const days = [...Array(120).keys()];
+  const traces = Object.entries(D.asks_per_day).map(([n, v]) => ({ type:"scatter", mode:"lines", name:NAMES[n], x:days, y:v,
+    line:{ color:COLORS[n], width:3 }, hovertemplate:"%{y:.1f}" }));
+  Plotly.newPlot("asks", traces, base({
+    xaxis:{ title:{ text:"Day" }, gridcolor:C.line, zeroline:false, fixedrange:true },
+    yaxis:{ title:{ text:"Questions per day" }, gridcolor:C.line, zeroline:false, fixedrange:true, rangemode:"tozero" },
+    shapes:[{ type:"line", x0:60, x1:60, yref:"paper", y0:0, y1:1, line:{ color:C.coral, width:2, dash:"dash" } }],
+    annotations:[{ x:61, y:1, yref:"paper", xanchor:"left", yanchor:"top", text:"debts paid", showarrow:false, font:{ color:C.coral, size:13 } }] }), cfg);
+})();
+
+// 4. Specifier
+(function(){
+  const days = [...Array(120).keys()];
+  const lab = { "learns from whoever approves":["Learns from whoever approves", C.coral], "owner-anchored":["Owner-anchored (specifier = comment)", C.teal] };
+  const traces = Object.entries(D.specifier).map(([n, v]) => ({ type:"scatter", mode:"lines", name:lab[n][0], x:days, y:v,
+    line:{ color:lab[n][1], width:3.2 }, hovertemplate:"%{y:.1f}" }));
+  Plotly.newPlot("spec", traces, base({
+    xaxis:{ title:{ text:"Day" }, gridcolor:C.line, zeroline:false, fixedrange:true },
+    yaxis:{ title:{ text:"Errors per 100" }, gridcolor:C.line, zeroline:false, fixedrange:true, rangemode:"tozero" },
+    shapes:[{ type:"rect", x0:60, x1:119, yref:"paper", y0:0, y1:1, fillcolor:"rgba(224,165,38,.10)", line:{ width:0 } }],
+    annotations:[{ x:62, y:1, yref:"paper", xanchor:"left", yanchor:"top", text:"specifier answers half", showarrow:false, font:{ color:"#8A6410", size:13 } }] }), cfg);
+})();
+</script>
+</body>
+</html>
