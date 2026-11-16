@@ -113,6 +113,27 @@ details ol { padding-left: 20px; }
 footer { background: var(--navy); color: #9DB0C7; padding: 32px 0; font-size: 14px; }
 footer a { color: #E8EEF6; }
 
+
+.topnav { position: sticky; top: 0; z-index: 20; background: rgba(15,30,51,.96); backdrop-filter: blur(8px); border-bottom: 1px solid #22395A; }
+.topnav .wrap { display: flex; align-items: center; gap: 10px; padding-top: 10px; padding-bottom: 10px; }
+.topnav .home { color: #fff; font-family: var(--display); font-weight: 700; font-size: 15px; text-decoration: none; white-space: nowrap; padding: 6px 12px 6px 0; border-right: 1px solid #2F4A6E; }
+.chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; font-family: var(--mono); font-size: 13px; color: #C9D5E4; text-decoration: none; border: 1px solid #2F4A6E; border-radius: 999px; padding: 6px 12px; white-space: nowrap; }
+.chip.on { background: var(--gold); border-color: var(--gold); color: var(--navy); font-weight: 600; }
+.stub { border-top: 1px solid var(--line); }
+.stub .tag { font-family: var(--mono); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; margin: 0 0 10px; }
+.stub h2 { font-size: clamp(28px, 3.6vw, 40px); letter-spacing: -.015em; }
+.stub .big { font-family: var(--display); font-weight: 800; font-size: clamp(44px, 7vw, 72px); letter-spacing: -.02em; line-height: 1; margin: 22px 0 6px; }
+.pill { display: inline-block; margin-top: 18px; font-size: 13px; font-weight: 600; color: var(--muted); background: var(--card); border: 1px dashed #B8C2D0; border-radius: 999px; padding: 6px 12px; }
+.pager { display: flex; justify-content: space-between; gap: 12px; margin-top: 34px; flex-wrap: wrap; }
+.pager a { flex: 1 1 160px; text-decoration: none; border: 1px solid var(--line); background: var(--card); border-radius: 12px; padding: 12px 16px; color: var(--ink); font-weight: 600; font-size: 15px; }
+.pager a span { display: block; font-family: var(--mono); font-size: 12px; color: var(--muted); font-weight: 500; letter-spacing: .06em; text-transform: uppercase; }
+.pager a.next { text-align: right; }
+.totop { position: fixed; right: 16px; bottom: 18px; z-index: 30; background: var(--teal); color: #fff; border: 0; border-radius: 999px; padding: 12px 16px; font: 600 14px var(--body); box-shadow: 0 8px 20px rgba(0,0,0,.2); cursor: pointer; }
+a.case:hover { transform: translateY(-2px); }
+[id] { scroll-margin-top: 64px; }
+
 @media (max-width: 860px) {
   .cover { padding: 40px 0 36px; }
   .cover .grid { grid-template-columns: 1fr; gap: 28px; }
@@ -132,7 +153,7 @@ footer a { color: #E8EEF6; }
 </head>
 <body>
 
-<header class="cover">
+<header class="cover" id="top">
   <div class="wrap grid">
     <div>
       <p class="eyebrow">Applied AI research portfolio · 7 cases</p>
@@ -194,7 +215,23 @@ footer a { color: #E8EEF6; }
   </div>
 </header>
 
-<section>
+<nav class="topnav" aria-label="Cases">
+  <div class="wrap">
+    <a class="home" href="#top">Portfolio</a>
+    <div class="chips" id="chips">
+      <a class="chip" href="#cases">All cases</a>
+      <a class="chip" href="#case-01">01 Agents</a>
+      <a class="chip" href="#case-02">02 Equilibra</a>
+      <a class="chip" href="#case-03">03 Press</a>
+      <a class="chip" href="#case-04">04 SEO</a>
+      <a class="chip" href="#case-05">05 Vending</a>
+      <a class="chip" href="#case-06">06 GrabGo</a>
+      <a class="chip" href="#case-07">07 Suppliers</a>
+    </div>
+  </div>
+</nav>
+
+<section id="cases">
   <div class="wrap">
     <div class="sec-head">
       <h2>Seven businesses, one question</h2>
@@ -205,44 +242,44 @@ footer a { color: #E8EEF6; }
         <span class="tag">01 · Agents</span>
         <span class="big">3× fewer</span>
         <p class="line">errors with one profile per type of decision, while asking the owner half as often.</p>
-        <span class="state">Open the interactive case ↓</span>
+        <span class="state">Open the interactive case →</span>
       </a>
-      <div class="case" style="--accent: var(--gold)">
+      <a class="case" href="#case-02" style="--accent: var(--gold)">
         <span class="tag">02 · Equilibra</span>
         <span class="big">$8,800</span>
         <p class="line">misplaced per user by copying the owner's moves. Learning his rule with 13 questions fixes it.</p>
-        <span class="state">Interactive version next</span>
-      </div>
-      <div class="case" style="--accent: var(--coral)">
+        <span class="state">Read the case →</span>
+      </a>
+      <a class="case" href="#case-03" style="--accent: var(--coral)">
         <span class="tag">03 · Press</span>
         <span class="big">4× faster</span>
         <p class="line">learning from a correction with a reason than from yes/no approvals.</p>
-        <span class="state">Interactive version next</span>
-      </div>
-      <div class="case" style="--accent: var(--sky)">
+        <span class="state">Read the case →</span>
+      </a>
+      <a class="case" href="#case-04" style="--accent: var(--sky)">
         <span class="tag">04 · SEO</span>
         <span class="big">360 → 126</span>
         <p class="line">questions to the owner in 12 weeks when only reversible changes run alone.</p>
-        <span class="state">Interactive version next</span>
-      </div>
-      <div class="case" style="--accent: var(--teal)">
+        <span class="state">Read the case →</span>
+      </a>
+      <a class="case" href="#case-05" style="--accent: var(--teal)">
         <span class="tag">05 · Vending</span>
         <span class="big">$83 → $155</span>
         <p class="line">weekly margin after travel, because the owner's rules count his time and driving.</p>
-        <span class="state">Interactive version next</span>
-      </div>
-      <div class="case" style="--accent: var(--gold)">
+        <span class="state">Read the case →</span>
+      </a>
+      <a class="case" href="#case-06" style="--accent: var(--gold)">
         <span class="tag">06 · GrabGo</span>
         <span class="big">−90%</span>
         <p class="line">money lost to image-recognition errors when look-alike products share a price.</p>
-        <span class="state">Interactive version next</span>
-      </div>
-      <div class="case" style="--accent: var(--coral)">
+        <span class="state">Read the case →</span>
+      </a>
+      <a class="case" href="#case-07" style="--accent: var(--coral)">
         <span class="tag">07 · Suppliers</span>
         <span class="big">15% → 2.5%</span>
         <p class="line">of lots where agent and owner disagree, once his tolerance is learned per product.</p>
-        <span class="state">Interactive version next</span>
-      </div>
+        <span class="state">Read the case →</span>
+      </a>
     </div>
   </div>
 </section>
@@ -339,10 +376,90 @@ footer a { color: #E8EEF6; }
         <li>Gama et al. (2014). A survey on concept drift adaptation. ACM Computing Surveys.</li>
       </ol>
     </details>
+    <div class="pager"><a href="#cases"><span>Back</span>All cases</a><a class="next" href="#case-02"><span>Next</span>02 · Equilibra</a></div>
     <p class="note" style="margin-top:18px">Code and full notebook: <a href="https://github.com/antoniosg2025-stack/applied-ai-research-portfolio/blob/main/notebooks/01_owner_decision_profile.ipynb">01_owner_decision_profile.ipynb</a></p>
   </div>
 </section>
 
+<section class="stub" id="case-02">
+  <div class="wrap">
+    <p class="tag" style="color: var(--gold)">Case 02 · Equilibra</p>
+    <h2>Copying the owner's money moves fails for people in other situations</h2>
+    <div class="big num" style="color: var(--gold)">$8,800</div>
+    <div style="color: var(--muted)">misplaced per user when the agent copies the owner's moves</div>
+    <p class="lede read">Equilibra helps users study their portfolio with their own AI. The owner's rule is simple: pay off every card first, keep a stable cushion, and put at risk only what a fixed deposit would pay in a year. Copying his actions breaks for users with different debts and income. Learning the rule over the situation, with 13 well-chosen questions to the owner, decides for 1,000 different users as he would.</p>
+    <span class="pill">Interactive charts for this case are being built</span>
+    <div class="pager"><a href="#case-01"><span>Previous</span>01 · Agents</a><a href="#cases"><span>Back</span>All cases</a><a class="next" href="#case-03"><span>Next</span>03 · Press</a></div>
+    <p class="note" style="margin-top:18px">Code and full notebook: <a href="https://github.com/antoniosg2025-stack/applied-ai-research-portfolio/blob/main/notebooks/02_equilibra_situation_rules.ipynb">02_equilibra_situation_rules.ipynb</a></p>
+  </div>
+</section>
+
+<section class="stub" id="case-03">
+  <div class="wrap">
+    <p class="tag" style="color: var(--coral)">Case 03 · Press</p>
+    <h2>A correction with a reason teaches more than many approvals</h2>
+    <div class="big num" style="color: var(--coral)">4× faster</div>
+    <div style="color: var(--muted)">learning when the owner explains why, instead of only yes or no</div>
+    <p class="lede read">Press is the content agent for social networks. Waiting for weekly approval batches loses about 35% of the reach of pieces the owner would have approved. Letting the agent publish alone when it is confident cuts the loss to 12%, with 13 wrong posts out of 3,000. In our real posts, the Spanish version holds viewers about twice as long at 2 seconds in 8 of 8 pairs.</p>
+    <span class="pill">Interactive charts for this case are being built</span>
+    <div class="pager"><a href="#case-02"><span>Previous</span>02 · Equilibra</a><a href="#cases"><span>Back</span>All cases</a><a class="next" href="#case-04"><span>Next</span>04 · SEO</a></div>
+    <p class="note" style="margin-top:18px">Code and full notebook: <a href="https://github.com/antoniosg2025-stack/applied-ai-research-portfolio/blob/main/notebooks/03_press_corrections_vs_approvals.ipynb">03_press_corrections_vs_approvals.ipynb</a></p>
+  </div>
+</section>
+
+<section class="stub" id="case-04">
+  <div class="wrap">
+    <p class="tag" style="color: var(--sky)">Case 04 · SEO</p>
+    <h2>Autonomy for reversible changes, and rules that travel across sites</h2>
+    <div class="big num" style="color: var(--sky)">360 → 126</div>
+    <div style="color: var(--muted)">questions to the owner in 12 weeks</div>
+    <p class="lede read">Built on the SEO agent's real decision log: 7 of 10 documents were done alone, while 3 of 5 staging changes and 2 of 3 production changes waited for the owner. Letting only reversible changes run alone cuts the questions. A correction learned on one site travels to all of them, with one question about its scope, so repeated rules fall from 70 to 6 to 0. Treating every correction as global would wrongly block about 21 changes.</p>
+    <span class="pill">Interactive charts for this case are being built</span>
+    <div class="pager"><a href="#case-03"><span>Previous</span>03 · Press</a><a href="#cases"><span>Back</span>All cases</a><a class="next" href="#case-05"><span>Next</span>05 · Vending</a></div>
+    <p class="note" style="margin-top:18px">Code and full notebook: <a href="https://github.com/antoniosg2025-stack/applied-ai-research-portfolio/blob/main/notebooks/04_seo_reversibility_rule_transfer.ipynb">04_seo_reversibility_rule_transfer.ipynb</a></p>
+  </div>
+</section>
+
+<section class="stub" id="case-05">
+  <div class="wrap">
+    <p class="tag" style="color: var(--teal)">Case 05 · Vending</p>
+    <h2>The owner's limits beat the textbook optimum</h2>
+    <div class="big num" style="color: var(--teal)">$83 → $155</div>
+    <div style="color: var(--muted)">weekly margin after travel</div>
+    <p class="lede read">Restocking vending machines looks like a forecasting problem. The textbook plan ignored the owner's time and driving distance. His own rules include them and nearly double the weekly margin after travel. Learning each correction once takes 12 corrections instead of 150. One rule alone, skipping the clinic on low-sales weeks, adds $47 a week and saves about $77 in driving.</p>
+    <span class="pill">Interactive charts for this case are being built</span>
+    <div class="pager"><a href="#case-04"><span>Previous</span>04 · SEO</a><a href="#cases"><span>Back</span>All cases</a><a class="next" href="#case-06"><span>Next</span>06 · GrabGo</a></div>
+    <p class="note" style="margin-top:18px">Code and full notebook: <a href="https://github.com/antoniosg2025-stack/applied-ai-research-portfolio/blob/main/notebooks/05_vending_owner_rules_restock.ipynb">05_vending_owner_rules_restock.ipynb</a></p>
+  </div>
+</section>
+
+<section class="stub" id="case-06">
+  <div class="wrap">
+    <p class="tag" style="color: var(--gold)">Case 06 · GrabGo</p>
+    <h2>Cheaper checkout by changing the shelf, not the camera</h2>
+    <div class="big num" style="color: var(--gold)">−90%</div>
+    <div style="color: var(--muted)">money lost to recognition errors</div>
+    <p class="lede read">GrabGo turns any space into a store that charges from images: the shelf camera, or a photo the customer sends by WhatsApp. Giving look-alike products the same price cuts the money lost to recognition errors by about 90% with no new hardware. Photo-only checkout misses about $160 per 1,000 carts. The owner's privacy and cost weights choose a different setup per location: photo-only at the dealership and the hotel, camera plus photo at a 200-person factory.</p>
+    <span class="pill">Interactive charts for this case are being built</span>
+    <div class="pager"><a href="#case-05"><span>Previous</span>05 · Vending</a><a href="#cases"><span>Back</span>All cases</a><a class="next" href="#case-07"><span>Next</span>07 · Suppliers</a></div>
+    <p class="note" style="margin-top:18px">Code and full notebook: <a href="https://github.com/antoniosg2025-stack/applied-ai-research-portfolio/blob/main/notebooks/06_grabgo_images_owner_tradeoffs.ipynb">06_grabgo_images_owner_tradeoffs.ipynb</a></p>
+  </div>
+</section>
+
+<section class="stub" id="case-07">
+  <div class="wrap">
+    <p class="tag" style="color: var(--coral)">Case 07 · Suppliers</p>
+    <h2>Phone photos plus a scale, judged with the owner's tolerance</h2>
+    <div class="big num" style="color: var(--coral)">15% → 2.5%</div>
+    <div style="color: var(--muted)">of lots where the agent and the owner disagree</div>
+    <p class="lede read">Samples and orders from China are inspected by a person with a phone: photos, videos and the weight of each box. Photos alone miss swapped components, and about 13 lots a year would ship. A scale catches them on the first lot. One fixed tolerance rejects about 7 good lots a year; the owner's tolerance learned per product cuts disagreement to 2.5%, with about 6 questions to him a year.</p>
+    <span class="pill">Interactive charts for this case are being built</span>
+    <div class="pager"><a href="#case-06"><span>Previous</span>06 · GrabGo</a><a href="#cases"><span>Back</span>All cases</a><a class="next" href="#top"><span>Back</span>To the top</a></div>
+    <p class="note" style="margin-top:18px">Code and full notebook: <a href="https://github.com/antoniosg2025-stack/applied-ai-research-portfolio/blob/main/notebooks/07_suppliers_phone_inspection_weight.ipynb">07_suppliers_phone_inspection_weight.ipynb</a></p>
+  </div>
+</section>
+
+<button class="totop" id="totop" type="button">↑ All cases</button>
 <footer>
   <div class="wrap">Juan Antonio Sainz Gálvez · Applied AI research portfolio · Every number on this page comes from the notebooks in the repository.</div>
 </footer>
@@ -434,6 +551,22 @@ tau.addEventListener("input", update); update();
     shapes:[{ type:"rect", x0:60, x1:119, yref:"paper", y0:0, y1:1, fillcolor:"rgba(224,165,38,.10)", line:{ width:0 } }],
     annotations:[{ x:62, y:1, yref:"paper", xanchor:"left", yanchor:"top", text:"specifier answers half", showarrow:false, font:{ color:"#8A6410", size:13 } }] }), cfg);
 })();
+
+// Navigation: jumps that work inside the viewer frame, plus the active chip
+function go(id){ const el=document.getElementById(id); if(!el) return;
+  el.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth", block:"start"});
+  try{ history.replaceState(null,"","#"+id); }catch(e){} }
+document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener("click",e=>{ e.preventDefault(); go(a.getAttribute("href").slice(1)); }));
+document.getElementById("totop").addEventListener("click",()=>go("cases"));
+const chipBox=document.getElementById("chips"), chips=[...chipBox.querySelectorAll(".chip")];
+const watched=["cases","case-01","case-02","case-03","case-04","case-05","case-06","case-07"].map(id=>document.getElementById(id));
+let lastCur=null;
+function mark(){ let cur=null; for(const s of watched){ if(s.getBoundingClientRect().top<120) cur=s.id; }
+  if(cur===lastCur) return; lastCur=cur;
+  chips.forEach(c=>{ const on=c.getAttribute("href")==="#"+cur; c.classList.toggle("on",on);
+    if(on) chipBox.scrollTo({left: c.offsetLeft - chipBox.offsetLeft - 40, behavior:"smooth"}); }); }
+addEventListener("scroll",mark,{passive:true}); mark();
+if(location.hash.length>1) setTimeout(()=>go(location.hash.slice(1)),300);
 </script>
 </body>
 </html>
