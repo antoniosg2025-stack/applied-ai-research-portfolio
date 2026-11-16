@@ -1,4 +1,7 @@
-# Learning the Owner's Decision Profile
+# Teaching AI Agents to Decide Like Their Owner
+
+<p align="center"><a href="https://research.antoniosainz.com"><img alt="View the interactive portfolio" src="https://img.shields.io/badge/View%20the%20interactive%20portfolio-research.antoniosainz.com-0F7C80?style=for-the-badge"></a></p>
+
 
 ### Personalized decision-making and deferral for LLM agents, studied in seven real businesses
 
@@ -10,7 +13,7 @@ Running everything through agents taught me one lesson: **the agents follow my r
 
 ---
 
-> **Thesis question.** How can LLM agents learn, from an owner's approvals, rejections and corrections, a **decision profile** grounded in the owner's personality and situation (constraints and strengths: economic, skills, cognitive, family and business), so that they **minimize the gap between the agent's decision and the decision the owner would have made**, across different types of decisions, as the owner evolves, and when other users operate the system on the owner's behalf, **deferring to the owner** whenever that gap is likely to be large?
+> **Thesis question.** How can an AI agent **learn its owner's way of deciding** from approvals and corrections, and **know when to ask**?
 
 ![One thesis question, seven real businesses](assets/thesis_map.png)
 
